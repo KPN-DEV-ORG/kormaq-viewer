@@ -66,7 +66,7 @@ const Thumbnail = ({
         )}
       >
         <div className="h-[114px] w-[128px]">
-          <div className="relative bg-black">
+          <div className="relative bg-background">
             {imageSrc ? (
               <img
                 src={imageSrc}
@@ -101,9 +101,9 @@ const Thumbnail = ({
                 <Tooltip>
                   <TooltipTrigger>
                     <div className="group">
-                      <Icons.StatusTracking className="text-primary-light h-[15px] w-[15px] group-hover:hidden" />
+                      <Icons.StatusTracking className="text-primary h-[15px] w-[15px] group-hover:hidden" />
                       <Icons.Cancel
-                        className="text-primary-light hidden h-[15px] w-[15px] group-hover:block"
+                        className="text-primary hidden h-[15px] w-[15px] group-hover:block"
                         onClick={onClickUntrack}
                       />
                     </div>
@@ -223,9 +223,9 @@ const Thumbnail = ({
             <Tooltip>
               <TooltipTrigger>
                 <div className="group">
-                  <Icons.StatusTracking className="text-primary-light h-[20px] w-[15px] group-hover:hidden" />
+                  <Icons.StatusTracking className="text-primary h-[20px] w-[15px] group-hover:hidden" />
                   <Icons.Cancel
-                    className="text-primary-light hidden h-[15px] w-[15px] group-hover:block"
+                    className="text-primary hidden h-[15px] w-[15px] group-hover:block"
                     onClick={onClickUntrack}
                   />
                 </div>

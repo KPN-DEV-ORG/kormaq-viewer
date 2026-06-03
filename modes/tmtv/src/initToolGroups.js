@@ -8,6 +8,8 @@ export const toolGroupIds = {
   default: 'default',
 };
 
+const noDefaultBindings = [];
+
 function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
   const tools = {
     active: [
@@ -17,11 +19,11 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
@@ -157,11 +159,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
   const mipTools = {
     active: [
       {
-        toolName: toolNames.VolumeRotate,
+        toolName: toolNames.StackScroll,
         bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
-        configuration: {
-          rotateIncrementDegrees: 5,
-        },
       },
       {
         toolName: toolNames.MipJumpToClick,
@@ -169,16 +168,6 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
           toolGroupId: toolGroupIds.PT,
         },
         bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
-      },
-    ],
-    enabled: [
-      {
-        toolName: toolNames.OrientationMarker,
-        configuration: {
-          orientationWidget: {
-            viewportCorner: 'BOTTOM_LEFT',
-          },
-        },
       },
     ],
   };

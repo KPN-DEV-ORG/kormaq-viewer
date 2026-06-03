@@ -1,10 +1,11 @@
-export type ThemePreference = 'default' | 'dark' | 'white';
+export type ThemePreference = 'default' | 'dark';
 
 export const THEME_STORAGE_KEY = 'ohif-ui-theme';
 export const THEME_CHANGE_EVENT = 'ohif-theme-change';
+export const DEFAULT_THEME_PREFERENCE: ThemePreference = 'dark';
 
 function normalizeThemePreference(value?: string | null): ThemePreference {
-  return value === 'dark' || value === 'white' ? value : 'default';
+  return value === 'default' || value === 'dark' ? value : DEFAULT_THEME_PREFERENCE;
 }
 
 function persistThemePreference(themePreference: ThemePreference) {
@@ -26,29 +27,25 @@ function applyThemeClass(themePreference: ThemePreference) {
 
   const root = document.documentElement;
   root.classList.toggle('dark', themePreference === 'dark');
-  root.classList.toggle('theme-white', themePreference === 'white');
+  root.classList.remove('theme-white');
   root.dataset.ohifTheme = themePreference;
 }
 
 export function getStoredThemePreference(): ThemePreference {
   if (typeof window === 'undefined') {
-    return 'default';
+    return DEFAULT_THEME_PREFERENCE;
   }
 
   try {
     return normalizeThemePreference(window.localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
-    return 'default';
+    return DEFAULT_THEME_PREFERENCE;
   }
 }
 
 export function getActiveThemePreference(): ThemePreference {
   if (typeof document === 'undefined') {
     return getStoredThemePreference();
-  }
-
-  if (document.documentElement.classList.contains('theme-white')) {
-    return 'white';
   }
 
   return document.documentElement.classList.contains('dark') ? 'dark' : 'default';

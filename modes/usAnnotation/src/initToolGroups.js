@@ -12,6 +12,8 @@ const colorsByOrientation = {
   coronal: 'rgb(0, 200, 0)',
 };
 
+const noDefaultBindings = [];
+
 function initDefaultToolGroup(extensionManager, toolGroupService, commandsManager, toolGroupId) {
   const utilityModule = extensionManager.getModuleEntry(
     '@ohif/extension-cornerstone.utilityModule.tools'
@@ -27,11 +29,11 @@ function initDefaultToolGroup(extensionManager, toolGroupService, commandsManage
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
@@ -123,19 +125,11 @@ function initSRToolGroup(extensionManager, toolGroupService) {
       },
       {
         toolName: toolNames.Pan,
-        bindings: [
-          {
-            mouseButton: Enums.MouseBindings.Auxiliary,
-          },
-        ],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [
-          {
-            mouseButton: Enums.MouseBindings.Secondary,
-          },
-        ],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
@@ -182,11 +176,11 @@ function initMPRToolGroup(extensionManager, toolGroupService, commandsManager) {
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
@@ -284,42 +278,24 @@ function initMIPToolGroup(extensionManager, toolGroupService) {
   const tools = {
     active: [
       {
-        toolName: toolNames.TrackballRotateTool,
+        toolName: toolNames.WindowLevel,
         bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
       },
       {
-        toolName: toolNames.WindowLevel,
-        bindings: [
-          {
-            mouseButton: Enums.MouseBindings.Primary,
-            modifierKey: Enums.KeyboardBindings.Shift,
-          },
-        ],
+        toolName: toolNames.StackScroll,
+        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
+      },
+      {
+        toolName: toolNames.TrackballRotateTool,
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
-      },
-      {
-        toolName: toolNames.VolumeRotate,
-        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
-        configuration: {
-          rotateIncrementDegrees: 5,
-        },
-      },
-    ],
-    enabled: [
-      {
-        toolName: toolNames.OrientationMarker,
-        configuration: {
-          orientationWidget: {
-            viewportCorner: 'BOTTOM_LEFT',
-          },
-        },
+        bindings: noDefaultBindings,
       },
     ],
     disabled: [
@@ -348,11 +324,11 @@ function initVolume3DToolGroup(extensionManager, toolGroupService) {
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
     ],
   };

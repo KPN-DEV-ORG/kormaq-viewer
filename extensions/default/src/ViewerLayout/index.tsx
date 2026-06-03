@@ -91,7 +91,7 @@ function ViewerLayout({
   const getComponent = id => {
     const entry = extensionManager.getModuleEntry(id);
 
-    if (!entry || !entry.component) {
+    if (!entry?.component) {
       throw new Error(
         `${id} is not valid for an extension module or no component found from extension ${id}. Please verify your configuration or ensure that the extension is properly registered. It's also possible that your mode is utilizing a module from an extension that hasn't been included in its dependencies (add the extension to the "extensionDependencies" array in your mode's index.js file). Check the reference string to the extension in your Mode configuration`
       );
@@ -133,10 +133,10 @@ function ViewerLayout({
       ({ options }) => {
         setHasLeftPanels(hasPanels('left'));
         setHasRightPanels(hasPanels('right'));
-        if (options?.leftPanelClosed !== undefined) {
+        if (options && options.leftPanelClosed !== undefined) {
           setLeftPanelClosed(options.leftPanelClosed);
         }
-        if (options?.rightPanelClosed !== undefined) {
+        if (options && options.rightPanelClosed !== undefined) {
           setRightPanelClosed(options.rightPanelClosed);
         }
       }

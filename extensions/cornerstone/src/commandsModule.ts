@@ -57,12 +57,14 @@ import { createSegmentationForViewport } from './utils/createSegmentationForView
 import { utilities as segmentationUtilities } from '@cornerstonejs/tools/segmentation';
 import i18n from '@ohif/i18n';
 import {
+  DEFAULT_MIP_SLAB_THICKNESS,
   PROJECTION_MODES,
   ProjectionMode,
   blendModeToProjectionMode,
-  clampProjectionSlabThickness,
+  getProjectionSampleDistance,
   getProjectionSlabThicknessRange,
   projectionModeToBlendMode,
+  resolveProjectionSlabThickness,
 } from './utils/projectionUtils';
 
 const { add, intersect, subtract, copy } = cstUtils.contourSegmentation;
@@ -72,6 +74,8 @@ const toggleSyncFunctions = {
   imageSlice: toggleImageSliceSync,
   voi: toggleVOISliceSync,
 };
+
+const disabledMouseTransformTools = new Set([toolNames.Pan, toolNames.Zoom]);
 
 const { segmentation: segmentationUtils } = cstUtils;
 
@@ -195,6 +199,18 @@ function commandsModule({
     };
   }
 
+  function _applyProjectionSampleDistance(viewport, actorEntry, volumeId: string) {
+    const mapper = actorEntry?.actor?.getMapper?.();
+    if (!mapper?.setSampleDistance) {
+      return;
+    }
+
+    const imageData = viewport.getImageData(volumeId)?.imageData ?? mapper.getInputData?.();
+    const sampleDistance = getProjectionSampleDistance(imageData);
+
+    mapper.setSampleDistance(sampleDistance);
+  }
+
   function _setViewportProjectionMode({
     viewportId,
     displaySetInstanceUID,
@@ -204,7 +220,7 @@ function commandsModule({
     viewportId?: string;
     displaySetInstanceUID?: string;
     mode?: ProjectionMode;
-    slabThickness?: number | 'fullVolume' | 'preserve';
+    slabThickness?: number | 'fullVolume' | 'minimum' | 'preserve' | 'default';
   }) {
     const {
       viewport,
@@ -236,13 +252,10 @@ function commandsModule({
     if (mode === PROJECTION_MODES.COMPOSITE) {
       viewport.setSlabThickness(range.min, actorUIDs);
     } else {
-      const nextThickness =
-        slabThickness === 'fullVolume'
-          ? range.max
-          : typeof slabThickness === 'number'
-            ? clampProjectionSlabThickness(slabThickness, range)
-            : clampProjectionSlabThickness(currentThickness, range);
+      _applyProjectionSampleDistance(viewport, actorEntry, volumeId);
 
+      const nextThickness =
+        resolveProjectionSlabThickness(slabThickness, range, currentThickness) ?? range.min;
       viewport.setSlabThickness(nextThickness, actorUIDs);
     }
 
@@ -1189,6 +1202,10 @@ function commandsModule({
       toolGroupId = null,
       bindings = [{ mouseButton: Enums.MouseBindings.Primary }],
     }) => {
+      if (disabledMouseTransformTools.has(toolName)) {
+        return;
+      }
+
       const { viewports } = viewportGridService.getState();
 
       if (!viewports.size) {
@@ -1543,7 +1560,7 @@ function commandsModule({
       viewportId,
       displaySetInstanceUID,
       mode = PROJECTION_MODES.MIP,
-      slabThickness = 'fullVolume',
+      slabThickness = DEFAULT_MIP_SLAB_THICKNESS,
     }) => {
       const { viewport, actorEntry } = _getProjectionViewportContext(
         viewportId,

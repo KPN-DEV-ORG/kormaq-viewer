@@ -21,6 +21,8 @@ import {
   ProjectionSlabThicknessRange,
   blendModeToProjectionMode,
   clampProjectionSlabThickness,
+  getDefaultProjectionSlabThickness,
+  getProjectionSampleDistance,
   getProjectionSlabThicknessRange,
   projectionModeToBlendMode,
 } from '../utils/projectionUtils';
@@ -597,16 +599,24 @@ export function useViewportRendering(
       }
 
       const nextBlendMode = projectionModeToBlendMode(mode);
-      const nextThickness = clampProjectionSlabThickness(
-        slabThicknessRef.current,
-        slabThicknessRange
-      );
+      const nextThickness =
+        projectionModeRef.current === PROJECTION_MODES.COMPOSITE &&
+        mode !== PROJECTION_MODES.COMPOSITE
+          ? getDefaultProjectionSlabThickness(slabThicknessRange)
+          : clampProjectionSlabThickness(slabThicknessRef.current, slabThicknessRange);
 
       viewport.setBlendMode(nextBlendMode, actorUIDs, false);
 
       if (mode === PROJECTION_MODES.COMPOSITE) {
         viewport.setSlabThickness(slabThicknessRange.min, actorUIDs);
       } else {
+        const { actorEntry, volumeId } = getProjectionViewportContext();
+        const mapper = actorEntry?.actor?.getMapper?.();
+        const imageData = volumeId
+          ? viewport.getImageData(volumeId)?.imageData
+          : mapper?.getInputData?.();
+
+        mapper?.setSampleDistance?.(getProjectionSampleDistance(imageData));
         viewport.setSlabThickness(nextThickness, actorUIDs);
         slabThicknessRef.current = nextThickness;
         setSlabThicknessState(nextThickness);

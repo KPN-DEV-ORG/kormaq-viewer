@@ -50,15 +50,19 @@ const WindowLevel = ({
     [histogram]
   );
 
+  const initialVOIRange = (): VOIRange => {
+    if (voiProp) {
+      return convertVOItoVOIRange(voiProp);
+    }
+
+    return {
+      min: range.min,
+      max: range.max,
+    };
+  };
+
   // Initialize VOI range from props
-  const [voiRange, setVOIRange] = useState<VOIRange>(
-    voiProp
-      ? convertVOItoVOIRange(voiProp)
-      : {
-          min: range.min,
-          max: range.max,
-        }
-  );
+  const [voiRange, setVOIRange] = useState<VOIRange>(initialVOIRange());
 
   // Update VOI range when props change
   useEffect(() => {

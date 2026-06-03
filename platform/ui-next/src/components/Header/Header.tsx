@@ -101,10 +101,10 @@ function Header({
           <div className="absolute right-0 top-1/2 flex -translate-y-1/2 select-none items-center">
             {UndoRedo}
             {hasUndoRedo && hasPatientInfo && (
-              <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>
+              <div className="border-border mx-1.5 h-[25px] border-r"></div>
             )}
             {PatientInfo}
-            {hasPatientInfo && <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>}
+            {hasPatientInfo && <div className="border-border mx-1.5 h-[25px] border-r"></div>}
             <div className="flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

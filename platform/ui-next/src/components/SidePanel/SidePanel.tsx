@@ -125,7 +125,7 @@ const getTabStyle = (numTabs: number) => {
 
 const getTabIconClassNames = (numTabs: number, isActiveTab: boolean) => {
   return classnames('h-full w-full flex items-center justify-center', {
-    'bg-customblue-40': isActiveTab,
+    'bg-primary/20 text-primary': isActiveTab,
     rounded: isActiveTab,
   });
 };
@@ -365,7 +365,7 @@ const SidePanel = ({
       <>
         {getCloseIcon()}
         <div className={classnames('flex grow justify-center')}>
-          <div className={classnames('bg-primary-dark text-primary flex flex-wrap')}>
+          <div className={classnames('bg-muted text-primary flex flex-wrap')}>
             {tabs.map((tab, tabIndex) => {
               const { disabled } = tab;
               return (
@@ -377,7 +377,7 @@ const SidePanel = ({
                         tabSpacerWidth
                       )}
                     >
-                      <div className="bg-primary-dark h-[20px] w-full"></div>
+                      <div className="bg-border h-[20px] w-full"></div>
                     </div>
                   )}
                   <Tooltip key={tabIndex}>
@@ -443,7 +443,7 @@ const SidePanel = ({
   const getOpenStateComponent = () => {
     return (
       <>
-        <div className="bg-bkg-med flex h-[40px] flex-shrink-0 select-none rounded-t p-2">
+        <div className="bg-muted flex h-[40px] flex-shrink-0 select-none rounded-t p-2">
           {tabs.length === 1 ? getOneTabComponent() : getTabGridComponent()}
         </div>
         <Separator

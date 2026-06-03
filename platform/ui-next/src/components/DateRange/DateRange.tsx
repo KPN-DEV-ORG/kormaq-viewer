@@ -58,7 +58,7 @@ export function DatePickerWithRange({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => {
-    const value = e.target.value;
+    const { value } = e.target;
     const date = parse(value, 'yyyy-MM-dd', new Date());
     if (type === 'start') {
       setStart(value);

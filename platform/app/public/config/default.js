@@ -18,12 +18,23 @@ window.config = {
   strictZSpacingForVolumeViewport: true,
   groupEnabledModesFirst: true,
   allowMultiSelectExport: false,
+  maxCacheSize: 3 * 1024 * 1024 * 1024,
   maxNumRequests: {
     interaction: 100,
     thumbnail: 75,
     // Prefetch number is dependent on the http protocol. For http 2 or
     // above, the number of requests can be go a lot higher.
     prefetch: 25,
+  },
+  studyPrefetcher: {
+    enabled: true,
+    displaySetsCount: 1024,
+    prefetchAllDisplaySets: true,
+    waitForActiveDisplaySet: false,
+    includeActiveDisplaySet: true,
+    firstImagePriorityCount: 1,
+    maxNumPrefetchRequests: 4,
+    order: 'closest',
   },
   showErrorDetails: 'always', // 'always', 'dev', 'production'
   // filterQueryParam: false,
@@ -88,7 +99,7 @@ window.config = {
       ],
     },
   ],
-  defaultDataSourceName: 'dicomweb',
+  defaultDataSourceName: 'ohif',
   /* Dynamic config allows user to pass "configUrl" query string this allows to load config without recompiling application. The regex will ensure valid configuration source */
   // dangerouslyUseDynamicConfig: {
   //   enabled: true,
@@ -102,7 +113,7 @@ window.config = {
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
-      sourceName: 'dicomweb',
+      sourceName: 'ohif',
       configuration: {
         friendlyName: 'AWS S3 Static wado server',
         name: 'aws',

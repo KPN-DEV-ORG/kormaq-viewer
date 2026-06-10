@@ -3,10 +3,25 @@ import getInterleavedFrames from './getInterleavedFrames';
 import zip from 'lodash.zip';
 import compact from 'lodash.compact';
 import flatten from 'lodash.flatten';
+import {
+  isWaitingForMatchedViewports,
+  rebuildVolumeIdMapsToLoad,
+  resetInterleaveLoaderState,
+  syncInterleaveLoaderStateToMatchDetails,
+} from './interleaveLoaderState';
 
 // Map of volumeId and SeriesInstanceId
 const volumeIdMapsToLoad = new Map<string, string>();
 const viewportIdVolumeInputArrayMap = new Map<string, unknown[]>();
+const loaderState = {
+  volumeIdMapsToLoad,
+  viewportIdVolumeInputArrayMap,
+  activeMatchSignature: null,
+};
+
+export function resetInterleaveCenterLoaderState(): void {
+  resetInterleaveLoaderState(loaderState);
+}
 
 /**
  * This function caches the volumeUIDs until all the volumes inside the
@@ -21,6 +36,12 @@ export default function interleaveCenterLoader({
   displaySetsMatchDetails,
   viewportMatchDetails: matchDetails,
 }) {
+  if (!volumeInputArray?.length) {
+    return;
+  }
+
+  syncInterleaveLoaderStateToMatchDetails(loaderState, matchDetails, viewportId);
+
   viewportIdVolumeInputArrayMap.set(viewportId, volumeInputArray);
 
   // Based on the volumeInputs store the volumeIds and SeriesInstanceIds
@@ -30,6 +51,8 @@ export default function interleaveCenterLoader({
     const volume = cache.getVolume(volumeId);
 
     if (!volume) {
+      viewportIdVolumeInputArrayMap.delete(viewportId);
+      rebuildVolumeIdMapsToLoad(loaderState);
       return;
     }
 
@@ -70,8 +93,17 @@ export default function interleaveCenterLoader({
     });
   });
 
-  if (uniqueViewportVolumeDisplaySetUIDs.size !== uniqueMatchedDisplaySetUIDs.size) {
+  if (!uniqueMatchedDisplaySetUIDs.size) {
+    resetInterleaveLoaderState(loaderState);
     return;
+  }
+
+  if (uniqueViewportVolumeDisplaySetUIDs.size !== uniqueMatchedDisplaySetUIDs.size) {
+    return null;
+  }
+
+  if (isWaitingForMatchedViewports(loaderState, matchDetails)) {
+    return null;
   }
 
   const volumeIds = Array.from(volumeIdMapsToLoad.keys()).slice();
@@ -84,7 +116,7 @@ export default function interleaveCenterLoader({
   // the imageIds and save them in AllRequests for later use
   const AllRequests = [];
   volumes.forEach(volume => {
-    const requests = volume.getImageLoadRequests();
+    const requests = volume.getImageLoadRequests?.() ?? [];
 
     if (!requests.length || !requests[0] || !requests[0].imageId) {
       return;
@@ -123,6 +155,15 @@ export default function interleaveCenterLoader({
 
   const requestType = Enums.RequestType.Prefetch;
   const priority = 0;
+
+  if (finalRequests.length) {
+    volumes.forEach(volume => {
+      if (volume?.loadStatus) {
+        volume.loadStatus.loading = true;
+        volume.loadStatus.cancelled = false;
+      }
+    });
+  }
 
   finalRequests.forEach(({ callLoadImage, additionalDetails, imageId, imageIdIndex, options }) => {
     const callLoadImageBound = callLoadImage.bind(null, imageId, imageIdIndex, options);

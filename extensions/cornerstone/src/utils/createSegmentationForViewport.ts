@@ -27,18 +27,30 @@ type CreateSegmentationForViewportParams = {
   segmentationType: SegmentationRepresentations;
 };
 
+/**
+ * Creates a segmentation for the active viewport
+ *
+ * The created segmentation will be registered as a display set and also added
+ * as a segmentation representation to the viewport.
+ */
 export async function createSegmentationForViewport(
   servicesManager: ServicesManager,
   { viewportId, options = {}, segmentationType }: CreateSegmentationForViewportParams
 ): Promise<string> {
   const { viewportGridService, displaySetService, segmentationService } = servicesManager.services;
   const { viewports } = viewportGridService.getState();
-  const viewport = viewports.get(viewportId);
+  const targetViewportId = viewportId;
 
+  const viewport = viewports.get(targetViewportId);
+
+  // Todo: add support for multiple display sets
   const displaySetInstanceUID = options.displaySetInstanceUID || viewport.displaySetInstanceUIDs[0];
+
   const segs = segmentationService.getSegmentations();
+
   const label = options.label || `${i18n.t('Tools:Segmentation')} ${segs.length + 1}`;
   const segmentationId = options.segmentationId || `${csUtils.uuidv4()}`;
+
   const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
 
   const segmentationCreationOptions = {
@@ -47,10 +59,12 @@ export async function createSegmentationForViewport(
     segments: _createDefaultSegments(options.createInitialSegment),
   };
 
+  // This will create the segmentation and register it as a display set
   const generatedSegmentationId = await (segmentationType === SegmentationRepresentations.Labelmap
     ? segmentationService.createLabelmapForDisplaySet(displaySet, segmentationCreationOptions)
     : segmentationService.createContourForDisplaySet(displaySet, segmentationCreationOptions));
 
+  // Also add the segmentation representation to the viewport
   await segmentationService.addSegmentationRepresentation(viewportId, {
     segmentationId,
     type: segmentationType,

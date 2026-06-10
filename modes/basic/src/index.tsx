@@ -217,12 +217,17 @@ export const toolbarSections = {
     'WindowLevel',
     'Capture',
     'Layout',
+    'ProjectionMIP',
+    'MPRLayout',
+    'Crosshairs',
     'MoreTools',
   ],
 
   [TOOLBAR_SECTIONS.viewportActionMenu.topLeft]: ['orientationMenu', 'dataOverlayMenu'],
 
-  [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: [],
+  [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: [
+    'ProjectionControlsMenu',
+  ],
 
   AdvancedRenderingControls: [
     'windowLevelMenuEmbedded',
@@ -235,6 +240,7 @@ export const toolbarSections = {
   [TOOLBAR_SECTIONS.viewportActionMenu.topRight]: [
     'modalityLoadBadge',
     'trackingStatus',
+    'navigationComponent',
   ],
 
   [TOOLBAR_SECTIONS.viewportActionMenu.bottomLeft]: ['windowLevelMenu'],
@@ -255,6 +261,10 @@ export const toolbarSections = {
     'Reset',
     'rotate-right',
     'flipHorizontal',
+    'CTAThinMIPPreset',
+    'CTAThickMIPPreset',
+    'MRAThinMIPPreset',
+    'PETFullMIPPreset',
     'ImageSliceSync',
     'ReferenceLines',
     'ImageOverlayViewer',
@@ -285,15 +295,15 @@ export const basicLayout = {
     viewports: [
       {
         namespace: cornerstone.viewport,
-        displaySetsToDisplay: [ohif.sopClassHandler, ohif.wsiSopClassHandler],
+        displaySetsToDisplay: [
+          ohif.sopClassHandler,
+          dicomvideo.sopClassHandler,
+          ohif.wsiSopClassHandler,
+        ],
       },
       {
         namespace: dicomsr.viewport,
         displaySetsToDisplay: [dicomsr.sopClassHandler, dicomsr.sopClassHandler3D],
-      },
-      {
-        namespace: dicomvideo.viewport,
-        displaySetsToDisplay: [dicomvideo.sopClassHandler],
       },
       {
         namespace: dicompdf.viewport,

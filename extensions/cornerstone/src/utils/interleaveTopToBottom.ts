@@ -2,10 +2,25 @@ import { cache, imageLoadPoolManager, Enums } from '@cornerstonejs/core';
 import zip from 'lodash.zip';
 import compact from 'lodash.compact';
 import flatten from 'lodash.flatten';
+import {
+  isWaitingForMatchedViewports,
+  rebuildVolumeIdMapsToLoad,
+  resetInterleaveLoaderState,
+  syncInterleaveLoaderStateToMatchDetails,
+} from './interleaveLoaderState';
 
 // Map of volumeId and SeriesInstanceId
 const volumeIdMapsToLoad = new Map<string, string>();
 const viewportIdVolumeInputArrayMap = new Map<string, unknown[]>();
+const loaderState = {
+  volumeIdMapsToLoad,
+  viewportIdVolumeInputArrayMap,
+  activeMatchSignature: null,
+};
+
+export function resetInterleaveTopToBottomState(): void {
+  resetInterleaveLoaderState(loaderState);
+}
 
 /**
  * This function caches the volumeIds until all the volumes inside the
@@ -20,6 +35,12 @@ export default function interleaveTopToBottom({
   displaySetsMatchDetails,
   viewportMatchDetails: matchDetails,
 }) {
+  if (!volumeInputArray?.length) {
+    return;
+  }
+
+  syncInterleaveLoaderStateToMatchDetails(loaderState, matchDetails, viewportId);
+
   viewportIdVolumeInputArrayMap.set(viewportId, volumeInputArray);
 
   // Based on the volumeInputs store the volumeIds and SeriesInstanceIds
@@ -29,6 +50,8 @@ export default function interleaveTopToBottom({
     const volume = cache.getVolume(volumeId);
 
     if (!volume) {
+      viewportIdVolumeInputArrayMap.delete(viewportId);
+      rebuildVolumeIdMapsToLoad(loaderState);
       return;
     }
 
@@ -38,31 +61,6 @@ export default function interleaveTopToBottom({
       volumeIdMapsToLoad.set(volumeId, metadata.SeriesInstanceUID);
     }
   }
-
-  const filteredMatchDetails = [];
-  const displaySetsToLoad = new Set();
-
-  // Check all viewports that have a displaySet to be loaded. In some cases
-  // (eg: line chart viewports which is not a Cornerstone viewport) the
-  // displaySet is created on the client and there are no instances to be
-  // downloaded. For those viewports the displaySet may have the `skipLoading`
-  // option set to true otherwise it may block the download of all other
-  // instances resulting in blank viewports.
-  Array.from(matchDetails.values()).forEach(curMatchDetails => {
-    const { displaySetsInfo } = curMatchDetails;
-    let numDisplaySetsToLoad = 0;
-
-    displaySetsInfo.forEach(({ displaySetInstanceUID, displaySetOptions }) => {
-      if (!displaySetOptions?.options?.skipLoading) {
-        numDisplaySetsToLoad++;
-        displaySetsToLoad.add(displaySetInstanceUID);
-      }
-    });
-
-    if (numDisplaySetsToLoad) {
-      filteredMatchDetails.push(curMatchDetails);
-    }
-  });
 
   /**
    * The following is checking if all the viewports that were matched in the HP has been
@@ -94,8 +92,17 @@ export default function interleaveTopToBottom({
     });
   });
 
-  if (uniqueViewportVolumeDisplaySetUIDs.size !== uniqueMatchedDisplaySetUIDs.size) {
+  if (!uniqueMatchedDisplaySetUIDs.size) {
+    resetInterleaveLoaderState(loaderState);
     return;
+  }
+
+  if (uniqueViewportVolumeDisplaySetUIDs.size !== uniqueMatchedDisplaySetUIDs.size) {
+    return null;
+  }
+
+  if (isWaitingForMatchedViewports(loaderState, matchDetails)) {
+    return null;
   }
 
   const volumeIds = Array.from(volumeIdMapsToLoad.keys()).slice();
@@ -108,7 +115,7 @@ export default function interleaveTopToBottom({
   // the imageIds and save them in AllRequests for later use
   const AllRequests = [];
   volumes.forEach(volume => {
-    const requests = volume.getImageLoadRequests();
+    const requests = volume.getImageLoadRequests?.() ?? [];
 
     if (!requests?.[0]?.imageId) {
       return;
@@ -137,6 +144,15 @@ export default function interleaveTopToBottom({
 
   const requestType = Enums.RequestType.Prefetch;
   const priority = 0;
+
+  if (finalRequests.length) {
+    volumes.forEach(volume => {
+      if (volume?.loadStatus) {
+        volume.loadStatus.loading = true;
+        volume.loadStatus.cancelled = false;
+      }
+    });
+  }
 
   finalRequests.forEach(({ callLoadImage, additionalDetails, imageId, imageIdIndex, options }) => {
     const callLoadImageBound = callLoadImage.bind(null, imageId, imageIdIndex, options);

@@ -11,6 +11,7 @@ import { isDisplaySetFromUrl, sopInstanceLocation } from './custom-attribute/isD
 import numberOfDisplaySetsWithImages from './custom-attribute/numberOfDisplaySetsWithImages';
 import seriesDescriptionsFromDisplaySets from './custom-attribute/seriesDescriptionsFromDisplaySets';
 import uuidv4 from '../../utils/uuidv4';
+import { getUniqueAttributeFromList } from './lib/getUniqueAttributeFromList';
 
 type Protocol = HangingProtocol.Protocol | HangingProtocol.ProtocolGenerator;
 
@@ -77,15 +78,15 @@ export default class HangingProtocolService extends PubSubService {
     },
     ModalitiesInStudy: {
       name: 'Gets the array of the modalities for the series',
-      callback: metadata =>
-        metadata.ModalitiesInStudy ??
-        (metadata.series || []).reduce((prev, curr) => {
-          const { Modality } = curr;
-          if (Modality && prev.indexOf(Modality) == -1) {
-            prev.push(Modality);
-          }
-          return prev;
-        }, []),
+      callback: metadata => {
+        if (metadata.ModalitiesInStudy?.length > 0) {
+          return metadata.ModalitiesInStudy;
+        }
+        if (Array.isArray(metadata.series)) {
+          return getUniqueAttributeFromList(metadata.series, 'Modality');
+        }
+        return [];
+      },
     },
     isReconstructable: {
       name: 'Checks if the display set is reconstructable',
@@ -530,6 +531,12 @@ export default class HangingProtocolService extends PubSubService {
       displaySetsMatchDetails: this.displaySetMatchDetails,
       viewportMatchDetails: this.viewportMatchDetails,
     });
+
+    // null means the strategy has accepted this viewport but is waiting for
+    // the rest of the matched viewports before it can start ordered loading.
+    if (loadedData === null) {
+      return true;
+    }
 
     // if loader successfully re-arranged the data with the custom strategy
     // and returned the new props, then broadcast them
@@ -1031,10 +1038,12 @@ export default class HangingProtocolService extends PubSubService {
     const old = this.getActiveProtocol();
 
     try {
+      // Each protocol application can target a different series or restored
+      // layout even when the protocol id is unchanged.
+      this.customImageLoadPerformed = false;
+
       if (!this.protocol || this.protocol.id !== protocol.id) {
         this.stageIndex = options?.stageIndex || 0;
-        //Reset load performed to false to re-fire loading strategy at new study opening
-        this.customImageLoadPerformed = false;
         this._originalProtocol = this._copyProtocol(protocol);
 
         // before reassigning the protocol, we need to check if there is a callback
@@ -1051,6 +1060,8 @@ export default class HangingProtocolService extends PubSubService {
           // check if the imageLoadStrategy is a valid strategy
           if (this.registeredImageLoadStrategies[imageLoadStrategy] instanceof Function) {
             this.activeImageLoadStrategyName = imageLoadStrategy;
+          } else {
+            this.activeImageLoadStrategyName = null;
           }
         } else {
           this.activeImageLoadStrategyName = null;

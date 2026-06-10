@@ -1,3 +1,5 @@
+import { MIN_SEGMENTATION_DRAWING_RADIUS, MAX_SEGMENTATION_DRAWING_RADIUS } from './constants';
+
 export const toolGroupIds = {
   CT: 'ctToolGroup',
   PT: 'ptToolGroup',
@@ -5,6 +7,8 @@ export const toolGroupIds = {
   MIP: 'mipToolGroup',
   default: 'default',
 };
+
+const noDefaultBindings = [];
 
 function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
   const tools = {
@@ -15,11 +19,11 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
@@ -61,6 +65,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'FILL_INSIDE_CIRCLE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -68,6 +74,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'ERASE_INSIDE_CIRCLE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -75,6 +83,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'FILL_INSIDE_SPHERE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -82,6 +92,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'ERASE_INSIDE_SPHERE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -89,6 +101,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'THRESHOLD_INSIDE_CIRCLE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -96,6 +110,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'THRESHOLD_INSIDE_SPHERE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -110,6 +126,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
             isDynamic: true,
             dynamicRadius: 3,
           },
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
     ],
@@ -141,11 +159,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
   const mipTools = {
     active: [
       {
-        toolName: toolNames.VolumeRotate,
+        toolName: toolNames.StackScroll,
         bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
-        configuration: {
-          rotateIncrementDegrees: 5,
-        },
       },
       {
         toolName: toolNames.MipJumpToClick,
@@ -153,16 +168,6 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
           toolGroupId: toolGroupIds.PT,
         },
         bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
-      },
-    ],
-    enabled: [
-      {
-        toolName: toolNames.OrientationMarker,
-        configuration: {
-          orientationWidget: {
-            viewportCorner: 'BOTTOM_LEFT',
-          },
-        },
       },
     ],
   };

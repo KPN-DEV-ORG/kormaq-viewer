@@ -55,6 +55,10 @@ export default async function init({
   extensionManager,
   appConfig,
 }: withAppTypes): Promise<void> {
+  // Use a public library path of PUBLIC_URL plus the component name
+  // This safely separates components that are loaded as-is.
+  window.PUBLIC_LIB_URL ||= './${component}/';
+
   // Note: this should run first before initializing the cornerstone
   // DO NOT CHANGE THE ORDER
 
@@ -62,14 +66,30 @@ export default async function init({
     peerImport: appConfig.peerImport,
   });
 
-  // For debugging e2e tests that are failing on CI
-  cornerstone.setUseCPURendering(Boolean(appConfig.useCPURendering));
+  // Clear any stale rendering-engine state before we apply the rendering mode
+  // for this session. This is especially important in dev/HMR flows.
+  servicesManager.services.cornerstoneViewportService?.destroy?.();
+
+  // Respect an explicit override, otherwise re-run Cornerstone's built-in
+  // CPU/GPU detection for the current browser/runtime.
+  if (typeof appConfig.useCPURendering === 'boolean') {
+    cornerstone.setUseCPURendering(appConfig.useCPURendering, false);
+  } else {
+    cornerstone.resetUseCPURendering();
+  }
+
+  const configuredWebGlContextCount = appConfig?.webGlContextCount;
+  const webGlContextCount =
+    typeof configuredWebGlContextCount === 'number'
+      ? Math.max(1, configuredWebGlContextCount)
+      : Math.min(cornerstone.getConfiguration().rendering?.webGlContextCount ?? 3, 3);
 
   cornerstone.setConfiguration({
     ...cornerstone.getConfiguration(),
     rendering: {
       ...cornerstone.getConfiguration().rendering,
       strictZSpacingForVolumeViewport: appConfig.strictZSpacingForVolumeViewport,
+      webGlContextCount,
     },
   });
 
@@ -86,7 +106,6 @@ export default async function init({
   const {
     userAuthenticationService,
     customizationService,
-    uiModalService,
     uiNotificationService,
     cornerstoneViewportService,
     hangingProtocolService,
@@ -102,13 +121,15 @@ export default async function init({
     colorbarService.EVENTS.STATE_CHANGED,
   ]);
 
+  toolbarService.registerEventForToolbarUpdate(segmentationService, [
+    segmentationService.EVENTS.SEGMENTATION_MODIFIED,
+    segmentationService.EVENTS.SEGMENTATION_REPRESENTATION_MODIFIED,
+    segmentationService.EVENTS.SEGMENTATION_ANNOTATION_CUT_MERGE_PROCESS_COMPLETED,
+  ]);
+
   window.services = servicesManager.services;
   window.extensionManager = extensionManager;
   window.commandsManager = commandsManager;
-
-  if (appConfig.showCPUFallbackMessage && cornerstone.getShouldUseCPURendering()) {
-    _showCPURenderingModal(uiModalService, hangingProtocolService);
-  }
   const { getPresentationId: getLutPresentationId } = useLutPresentationStore.getState();
 
   const { getPresentationId: getSegmentationPresentationId } =
@@ -127,10 +148,18 @@ export default async function init({
     getSegmentationPresentationId
   );
 
-  cornerstoneTools.segmentation.config.style.setStyle(
+  segmentationService.setStyle(
     { type: SegmentationRepresentations.Contour },
     {
+      // Declare these alpha values at the Contour type level so that they can be set/changed/inherited for all contour segmentations.
+      fillAlpha: 0.5,
+      fillAlphaInactive: 0.4,
+
+      // In general do not fill contours so that hydrated RTSTRUCTs are not filled in when active or inactive by default.
+      // However, hydrated RTSTRUCTs are filled in when active or inactive if the user chooses to fill ALL contours.
+      // Those Contours created in OHIF (i.e. using the Segmentation Panel) will override both fill properties upon creation.
       renderFill: false,
+      renderFillInactive: false,
     }
   );
 
@@ -195,7 +224,6 @@ export default async function init({
     commandsManager.runCommand('jumpToMeasurementViewport', { measurement, annotationUID, evt });
   });
 
-
   // When a custom image load is performed, update the relevant viewports
   hangingProtocolService.subscribe(
     hangingProtocolService.EVENTS.CUSTOM_IMAGE_LOAD_PERFORMED,
@@ -210,7 +238,12 @@ export default async function init({
 
         const ohifViewport = cornerstoneViewportService.getViewportInfo(viewportId);
 
+        if (!viewport || !ohifViewport) {
+          continue;
+        }
+
         const { presentationIds } = ohifViewport.getViewportOptions();
+        const requestId = (volumeInputArray as Array<unknown> & { requestId?: number }).requestId;
 
         const presentations = {
           positionPresentation: positionPresentationStore[presentationIds?.positionPresentationId],
@@ -219,7 +252,12 @@ export default async function init({
             segmentationPresentationStore[presentationIds?.segmentationPresentationId],
         };
 
-        cornerstoneViewportService.setVolumesForViewport(viewport, volumeInputArray, presentations);
+        cornerstoneViewportService.setVolumesForViewport(
+          viewport,
+          volumeInputArray,
+          presentations,
+          requestId
+        );
       }
     }
   );
@@ -325,39 +363,3 @@ const createMetadataWrappedStrategy = (strategyFn: (args: any) => any) => {
     }
   };
 };
-
-function CPUModal() {
-  return (
-    <div>
-      <p>
-        Your computer does not have enough GPU power to support the default GPU rendering mode. OHIF
-        has switched to CPU rendering mode. Please note that CPU rendering does not support all
-        features such as Volume Rendering, Multiplanar Reconstruction, and Segmentation Overlays.
-      </p>
-    </div>
-  );
-}
-
-function _showCPURenderingModal(uiModalService, hangingProtocolService) {
-  const callback = progress => {
-    if (progress === 100) {
-      uiModalService.show({
-        content: CPUModal,
-        title: 'OHIF Fell Back to CPU Rendering',
-      });
-
-      return true;
-    }
-  };
-
-  const { unsubscribe } = hangingProtocolService.subscribe(
-    hangingProtocolService.EVENTS.PROTOCOL_CHANGED,
-    () => {
-      const done = callback(100);
-
-      if (done) {
-        unsubscribe();
-      }
-    }
-  );
-}

@@ -1,8 +1,62 @@
-import getStudies from './studiesList';
 import { DicomMetadataStore, log, utils, Enums } from '@ohif/core';
+import { getShouldUseCPURendering } from '@cornerstonejs/core';
+import getStudies from './studiesList';
 import isSeriesFilterUsed from '../../utils/isSeriesFilterUsed';
 
-const { getSplitParam } = utils;
+const { seriesSortCriteria, getSplitParam } = utils;
+
+const protocolRequiresGPU = protocol => {
+  const viewportOptions = [
+    protocol?.defaultViewport?.viewportOptions,
+    ...(protocol?.stages || []).flatMap(stage =>
+      (stage?.viewports || []).map(viewport => viewport?.viewportOptions)
+    ),
+  ];
+
+  return viewportOptions.some(viewportOptions =>
+    ['volume', 'volume3d'].includes(viewportOptions?.viewportType)
+  );
+};
+
+function getSeriesPromiseUID(seriesPromise) {
+  return seriesPromise?.metadata?.SeriesInstanceUID || seriesPromise?.metadata?.seriesInstanceUID;
+}
+
+function splitSeriesPromisesByUID(seriesPromises, seriesInstanceUIDs = []) {
+  if (!seriesInstanceUIDs?.length) {
+    return {
+      requiredSeries: seriesPromises,
+      remaining: [],
+    };
+  }
+
+  const requestedSeries = new Set(seriesInstanceUIDs);
+  const requiredSeries = [];
+  const remaining = [];
+
+  seriesPromises.forEach(seriesPromise => {
+    const seriesInstanceUID = getSeriesPromiseUID(seriesPromise);
+
+    if (seriesInstanceUID && requestedSeries.has(seriesInstanceUID)) {
+      requiredSeries.push(seriesPromise);
+      return;
+    }
+
+    remaining.push(seriesPromise);
+  });
+
+  if (!requiredSeries.length) {
+    return {
+      requiredSeries: seriesPromises,
+      remaining: [],
+    };
+  }
+
+  return {
+    requiredSeries,
+    remaining,
+  };
+}
 
 /**
  * Initialize the route.
@@ -14,7 +68,12 @@ const { getSplitParam } = utils;
  * @returns array of subscriptions to cancel
  */
 export async function defaultRouteInit(
-  { servicesManager, studyInstanceUIDs, dataSource, filters, appConfig }: withAppTypes,
+  {
+    servicesManager,
+    studyInstanceUIDs,
+    dataSource,
+    filters,
+  }: withAppTypes & { studyInstanceUIDs?: string[] },
   hangingProtocolId,
   stageIndex
 ) {
@@ -27,21 +86,46 @@ export async function defaultRouteInit(
    */
   function applyHangingProtocol() {
     const displaySets = displaySetService.getActiveDisplaySets();
+    // The display sets are not necessarily in load order, even though the
+    // series got started in load order, so re-sort them before hanging
+    const sortCriteria = seriesSortCriteria.default;
 
     if (!displaySets || !displaySets.length) {
       return;
     }
+    const sortedDisplaySets = [...displaySets].sort(sortCriteria);
 
     // Gets the studies list to use
-    const studies = getStudies(studyInstanceUIDs, displaySets);
+    const studies = getStudies(studyInstanceUIDs, sortedDisplaySets);
 
     // study being displayed, and is thus the "active" study.
     const activeStudy = studies[0];
 
+    let protocolIdToApply = hangingProtocolId;
+    let stageIndexToApply = stageIndex;
+
+    if (protocolIdToApply && getShouldUseCPURendering()) {
+      try {
+        const protocol = hangingProtocolService.getProtocolById(protocolIdToApply);
+        if (protocolRequiresGPU(protocol)) {
+          uiNotificationService.show({
+            title: 'GPU Rendering Required',
+            message: `${protocol?.name || protocolIdToApply} requires GPU rendering and cannot be applied while CPU rendering is enabled.`,
+            type: 'info',
+            duration: 3000,
+          });
+          protocolIdToApply = 'default';
+          stageIndexToApply = undefined;
+        }
+      } catch (error) {
+        console.warn('Unable to validate hanging protocol for CPU rendering', error);
+      }
+    }
+
     // run the hanging protocol matching on the displaySets with the predefined
     // hanging protocol in the mode configuration
-    hangingProtocolService.run({ studies, activeStudy, displaySets }, hangingProtocolId, {
-      stageIndex,
+    hangingProtocolService.run({ studies, activeStudy, displaySets }, protocolIdToApply, {
+      stageIndex: stageIndexToApply,
     });
   }
 
@@ -94,8 +178,8 @@ export async function defaultRouteInit(
     });
   });
 
-  // is displaysets from URL and has initialSOPInstanceUID or initialSeriesInstanceUID
-  // then we need to wait for all display sets to be retrieved before applying the hanging protocol
+  // If the URL asks for a specific initial series, retrieve that display set
+  // first so the hanging protocol can apply without waiting for every series.
   const params = new URLSearchParams(window.location.search);
 
   const initialSeriesInstanceUID = getSplitParam('initialseriesinstanceuid', params);
@@ -125,10 +209,15 @@ export async function defaultRouteInit(
       }
 
       if (displaySetFromUrl) {
-        const requiredSeriesPromises = retrieveSeriesMetadataPromise.map(promise =>
-          promise.start()
+        const { requiredSeries, remaining } = splitSeriesPromisesByUID(
+          retrieveSeriesMetadataPromise,
+          initialSeriesInstanceUID
         );
+        const requiredSeriesPromises = requiredSeries.map(promise => promise.start());
         allPromises.push(Promise.allSettled(requiredSeriesPromises));
+        if (remaining.length) {
+          remainingPromises.push(remaining);
+        }
       } else {
         const { requiredSeries, remaining } = hangingProtocolService.filterSeriesRequiredForRun(
           hangingProtocolId,

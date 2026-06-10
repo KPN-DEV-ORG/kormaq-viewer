@@ -1,5 +1,4 @@
 import React, { ReactNode } from 'react';
-import classNames from 'classnames';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,6 +27,7 @@ interface HeaderProps {
   WhiteLabeling?: {
     createLogoComponentFn?: (React: any, props: any) => ReactNode;
   };
+  Branding?: ReactNode;
   PatientInfo?: ReactNode;
   Secondary?: ReactNode;
   UndoRedo?: ReactNode;
@@ -40,6 +40,7 @@ function Header({
   onClickReturnButton,
   isSticky = false,
   WhiteLabeling,
+  Branding,
   PatientInfo,
   UndoRedo,
   Secondary,
@@ -51,6 +52,13 @@ function Header({
     }
   };
 
+  const hasReturnButton = isReturnEnabled && onClickReturnButton;
+  const brandingComponent = Branding ?? WhiteLabeling?.createLogoComponentFn?.(React, props);
+  const hasBranding = Boolean(brandingComponent);
+  const hasUndoRedo = Boolean(UndoRedo);
+  const hasPatientInfo = Boolean(PatientInfo);
+  const hasSecondary = Boolean(Secondary);
+
   return (
     <IconPresentationProvider
       size="large"
@@ -61,37 +69,49 @@ function Header({
         {...props}
       >
         <div className="relative h-[48px] items-center">
-          <div className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center">
-            <div
-              className={classNames(
-                'mr-3 inline-flex items-center',
-                isReturnEnabled && 'cursor-pointer'
+          {(hasReturnButton || hasBranding || hasSecondary) && (
+            <div className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center">
+              {hasReturnButton && (
+                <button
+                  type="button"
+                  className="text-foreground hover:bg-primary/25 ml-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+                  onClick={onClickReturn}
+                  data-cy="return-to-work-list"
+                >
+                  <Icons.ArrowLeft className="h-7 w-7" />
+                </button>
               )}
-              onClick={onClickReturn}
-              data-cy="return-to-work-list"
-            >
-              {isReturnEnabled && <Icons.ArrowLeft className="text-primary ml-1 h-7 w-7" />}
-              <div className="ml-1">
-                {WhiteLabeling?.createLogoComponentFn?.(React, props) || <Icons.OHIFLogo />}
-              </div>
+              {hasBranding && (
+                <div className={`${hasReturnButton ? 'ml-2' : 'ml-1'} flex h-8 items-center`}>
+                  {brandingComponent}
+                </div>
+              )}
+              {hasSecondary && (
+                <div
+                  className={`${hasReturnButton || hasBranding ? 'ml-2' : 'ml-1'} flex h-8 items-center`}
+                >
+                  {Secondary}
+                </div>
+              )}
             </div>
-          </div>
-          <div className="absolute top-1/2 left-[250px] h-8 -translate-y-1/2">{Secondary}</div>
+          )}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
             <div className="flex items-center justify-center space-x-2">{children}</div>
           </div>
           <div className="absolute right-0 top-1/2 flex -translate-y-1/2 select-none items-center">
             {UndoRedo}
-            <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>
+            {hasUndoRedo && hasPatientInfo && (
+              <div className="border-border mx-1.5 h-[25px] border-r"></div>
+            )}
             {PatientInfo}
-            <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>
+            {hasPatientInfo && <div className="border-border mx-1.5 h-[25px] border-r"></div>}
             <div className="flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-primary hover:bg-primary-dark mt-2 h-full w-full"
+                    className="text-foreground hover:bg-primary/25 mt-2 h-full w-full"
                   >
                     <Icons.GearSettings />
                   </Button>
@@ -109,7 +129,7 @@ function Header({
                       >
                         {IconComponent && (
                           <span className="flex h-4 w-4 items-center justify-center">
-                            <Icons.ByName name={IconComponent.name} />
+                            <Icons.ByName name={option.icon} />
                           </span>
                         )}
                         <span className="flex-1">{option.title}</span>

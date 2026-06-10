@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import { useDrag } from 'react-dnd';
 import { Icons } from '../Icons';
-import { DisplaySetMessageListTooltip } from '../DisplaySetMessageListTooltip';
 import { TooltipTrigger, TooltipContent, Tooltip } from '../Tooltip';
 
 /**
@@ -67,7 +66,7 @@ const Thumbnail = ({
         )}
       >
         <div className="h-[114px] w-[128px]">
-          <div className="relative bg-black">
+          <div className="relative bg-background">
             {imageSrc ? (
               <img
                 src={imageSrc}
@@ -88,22 +87,23 @@ const Thumbnail = ({
                   loadingProgress && loadingProgress < 1 && 'bg-primary/25'
                 )}
               ></div>
-              <div className="text-[11px] font-semibold text-white">{modality}</div>
+              <div
+                className="text-[11px] font-semibold text-foreground"
+                data-cy="series-modality-label"
+              >
+                {modality}
+              </div>
             </div>
 
             {/* top right */}
             <div className="absolute top-0 right-0 flex items-center gap-[4px]">
-              <DisplaySetMessageListTooltip
-                messages={messages}
-                id={`display-set-tooltip-${displaySetInstanceUID}`}
-              />
               {isTracked && (
                 <Tooltip>
                   <TooltipTrigger>
                     <div className="group">
-                      <Icons.StatusTracking className="text-primary-light h-[15px] w-[15px] group-hover:hidden" />
+                      <Icons.StatusTracking className="text-primary h-[15px] w-[15px] group-hover:hidden" />
                       <Icons.Cancel
-                        className="text-primary-light hidden h-[15px] w-[15px] group-hover:block"
+                        className="text-primary hidden h-[15px] w-[15px] group-hover:block"
                         onClick={onClickUntrack}
                       />
                     </div>
@@ -115,7 +115,7 @@ const Thumbnail = ({
                       </div>
                       <div className="flex flex-1 flex-col">
                         <span>
-                          <span className="text-white">
+                          <span className="text-foreground">
                             {isTracked ? 'Series is tracked' : 'Series is untracked'}
                           </span>
                         </span>
@@ -139,7 +139,10 @@ const Thumbnail = ({
           <Tooltip>
             <TooltipContent>{description}</TooltipContent>
             <TooltipTrigger>
-              <div className="min-h-[18px] w-[128px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4 text-white">
+              <div
+                className="min-h-[18px] w-[128px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4 text-foreground"
+                data-cy="series-description-label"
+              >
                 {description}
               </div>
             </TooltipTrigger>
@@ -180,11 +183,19 @@ const Thumbnail = ({
           ></div>
           <div className="flex h-full w-[calc(100%-12px)] flex-col justify-start">
             <div className="flex items-center gap-[7px]">
-              <div className="text-[13px] font-semibold text-white">{modality}</div>
+              <div
+                className="text-[13px] font-semibold text-foreground"
+                data-cy="series-modality-label"
+              >
+                {modality}
+              </div>
               <Tooltip>
                 <TooltipContent>{description}</TooltipContent>
                 <TooltipTrigger className="w-full overflow-hidden">
-                  <div className="max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal text-white">
+                  <div
+                    className="max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal text-foreground"
+                    data-cy="series-description-label"
+                  >
                     {description}
                   </div>
                 </TooltipTrigger>
@@ -208,17 +219,13 @@ const Thumbnail = ({
           </div>
         </div>
         <div className="flex h-full items-center gap-[4px]">
-          <DisplaySetMessageListTooltip
-            messages={messages}
-            id={`display-set-tooltip-${displaySetInstanceUID}`}
-          />
           {isTracked && (
             <Tooltip>
               <TooltipTrigger>
                 <div className="group">
-                  <Icons.StatusTracking className="text-primary-light h-[20px] w-[15px] group-hover:hidden" />
+                  <Icons.StatusTracking className="text-primary h-[20px] w-[15px] group-hover:hidden" />
                   <Icons.Cancel
-                    className="text-primary-light hidden h-[15px] w-[15px] group-hover:block"
+                    className="text-primary hidden h-[15px] w-[15px] group-hover:block"
                     onClick={onClickUntrack}
                   />
                 </div>
@@ -230,7 +237,7 @@ const Thumbnail = ({
                   </div>
                   <div className="flex flex-1 flex-col">
                     <span>
-                      <span className="text-white">
+                      <span className="text-foreground">
                         {isTracked ? 'Series is tracked' : 'Series is untracked'}
                       </span>
                     </span>

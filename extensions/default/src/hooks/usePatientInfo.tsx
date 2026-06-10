@@ -3,6 +3,35 @@ import { utils, useSystem } from '@ohif/core';
 
 const { formatPN, formatDate } = utils;
 
+const formatAge = age => {
+  if (!age) {
+    return null;
+  }
+
+  const match = `${age}`.match(/^(\d+)([DWMY])$/i);
+  if (!match) {
+    return age;
+  }
+
+  const [, value, unit] = match;
+  const numericValue = parseInt(value, 10);
+  const normalizedValue = String(numericValue);
+  const normalizedUnit = unit.toUpperCase();
+  const unitLabels = {
+    D: ['day', 'days'],
+    W: ['week', 'weeks'],
+    M: ['month', 'months'],
+    Y: ['year', 'years'],
+  };
+
+  const [singular, plural] = unitLabels[normalizedUnit] || [];
+  if (!singular || !plural) {
+    return age;
+  }
+
+  return `${normalizedValue} ${numericValue === 1 ? singular : plural}`;
+};
+
 function usePatientInfo() {
   const { servicesManager } = useSystem();
   const { displaySetService } = servicesManager.services;
@@ -12,6 +41,7 @@ function usePatientInfo() {
     PatientID: '',
     PatientSex: '',
     PatientDOB: '',
+    PatientAge: '',
   });
   const [isMixedPatients, setIsMixedPatients] = useState(false);
 
@@ -30,7 +60,7 @@ function usePatientInfo() {
     setIsMixedPatients(isMixedPatients);
   };
 
-  const updatePatientInfo = ({ displaySetsAdded }) => {
+  const updatePatientInfo = ({ displaySetsAdded }: { displaySetsAdded: any[] }) => {
     if (!displaySetsAdded.length) {
       return;
     }
@@ -45,6 +75,7 @@ function usePatientInfo() {
       PatientName: instance.PatientName ? formatPN(instance.PatientName) : null,
       PatientSex: instance.PatientSex || null,
       PatientDOB: formatDate(instance.PatientBirthDate) || null,
+      PatientAge: formatAge(instance.PatientAge) || null,
     });
     checkMixedPatients(instance.PatientID || null);
   };
@@ -52,7 +83,7 @@ function usePatientInfo() {
   useEffect(() => {
     const subscription = displaySetService.subscribe(
       displaySetService.EVENTS.DISPLAY_SETS_ADDED,
-      props => updatePatientInfo(props)
+      props => updatePatientInfo(props as { displaySetsAdded: any[] })
     );
     return () => subscription.unsubscribe();
   }, []);

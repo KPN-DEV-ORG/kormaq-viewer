@@ -7,6 +7,7 @@ import { Types } from '@ohif/core';
 
 import { useViewportGrid } from '@ohif/ui-next';
 import getDicomMicroscopySRSopClassHandler from './DicomMicroscopySRSopClassHandler';
+import getDicomMicroscopyANNSopClassHandler from './DicomMicroscopyANNSopClassHandler';
 import MicroscopyService from './services/MicroscopyService';
 import { useResizeDetector } from 'react-resize-detector';
 import debounce from 'lodash.debounce';
@@ -43,7 +44,7 @@ const extension: Types.Extensions.Extension = {
    * {name, component} object. Example of a viewport module is the CornerstoneViewport
    * that is provided by the Cornerstone extension in OHIF.
    */
-  getViewportModule({ servicesManager, extensionManager, commandsManager }) {
+  getViewportModule({ servicesManager }) {
     /**
      *
      * @param props {*}
@@ -131,8 +132,8 @@ const extension: Types.Extensions.Extension = {
           return {
             disabled: false,
             className: isPrimaryActive
-              ? '!text-black bg-primary-light'
-              : '!text-common-bright hover:!bg-primary-dark hover:!text-primary-light',
+              ? '!text-primary-foreground bg-primary'
+              : '!text-foreground hover:!bg-accent hover:!text-primary',
             // Todo: isActive right now is used for nested buttons where the primary
             // button needs to be fully rounded (vs partial rounded) when active
             // otherwise it does not have any other use
@@ -150,7 +151,10 @@ const extension: Types.Extensions.Extension = {
    * Examples include the default sop class handler provided by the default extension
    */
   getSopClassHandlerModule(params) {
-    return [getDicomMicroscopySRSopClassHandler(params)];
+    return [
+      getDicomMicroscopySRSopClassHandler(params),
+      getDicomMicroscopyANNSopClassHandler(params),
+    ];
   },
 
   getPanelModule,

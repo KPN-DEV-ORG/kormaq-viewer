@@ -28,6 +28,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
+  ThemeSelector,
   Clipboard,
   useModal,
   useSessionStorage,
@@ -168,9 +169,9 @@ function WorkList({
 
   // Set body style
   useEffect(() => {
-    document.body.classList.add('bg-black');
+    document.body.classList.add('bg-background');
     return () => {
-      document.body.classList.remove('bg-black');
+      document.body.classList.remove('bg-background');
     };
   }, []);
 
@@ -395,12 +396,21 @@ function WorkList({
                 // Hide this mode from display
                 return null;
               }
+              if (mode.hide) {
+                // Hide this mode from display
+                return null;
+              }
               const modalitiesToCheck = modalities.replaceAll('/', '\\');
 
               const { valid: isValidMode, description: invalidModeDescription } = mode.isValidMode({
                 modalities: modalitiesToCheck,
                 study,
               });
+              if (isValidMode === null) {
+                // Hide this as a computed result.
+                return null;
+              }
+
               if (isValidMode === null) {
                 // Hide this as a computed result.
                 return null;
@@ -438,6 +448,7 @@ function WorkList({
                     <Button
                       type={ButtonEnums.type.primary}
                       size={ButtonEnums.size.smallTall}
+                      size={ButtonEnums.size.smallTall}
                       disabled={!isValidMode}
                       startIconTooltip={
                         !isValidMode ? (
@@ -446,16 +457,16 @@ function WorkList({
                           </div>
                         ) : null
                       }
-                      startIcon={
-                        isValidMode ? (
-                          <Icons.LaunchArrow className="!h-[20px] !w-[20px] text-black" />
-                        ) : (
-                          <Icons.LaunchInfo className="!h-[20px] !w-[20px] text-black" />
-                        )
-                      }
+                        startIcon={
+                          isValidMode ? (
+                            <Icons.LaunchArrow className="!h-[20px] !w-[20px]" />
+                          ) : (
+                            <Icons.LaunchInfo className="!h-[20px] !w-[20px]" />
+                          )
+                        }
                       onClick={() => {}}
                       dataCY={`mode-${mode.routeName}-${studyInstanceUid}`}
-                      className={!isValidMode && 'bg-[#222d44]'}
+                      className={!isValidMode && 'bg-accent'}
                     >
                       {mode.displayName}
                     </Button>
@@ -524,6 +535,7 @@ function WorkList({
     DicomUploadComponent && dataSource.getConfig()?.dicomUploadEnabled
       ? {
           title: 'Upload files',
+          containerClassName: DicomUploadComponent?.containerClassName,
           closeButton: true,
           shouldCloseOnEsc: false,
           shouldCloseOnOverlayClick: false,
@@ -551,12 +563,13 @@ function WorkList({
   );
 
   return (
-    <div className="flex h-screen flex-col bg-black">
+    <div className="flex h-screen flex-col bg-background">
       <Header
         isSticky
         menuOptions={menuOptions}
         isReturnEnabled={false}
         WhiteLabeling={appConfig.whiteLabeling}
+        Branding={<ThemeSelector />}
         showPatientInfo={PatientInfoVisibility.DISABLED}
       />
       <Onboarding />
@@ -599,7 +612,7 @@ function WorkList({
           ) : (
             <div className="flex flex-col items-center justify-center pt-48">
               {appConfig.showLoadingIndicator && isLoadingData ? (
-                <LoadingIndicatorProgress className={'h-full w-full bg-black'} />
+                <LoadingIndicatorProgress className={'h-full w-full bg-background'} />
               ) : (
                 <EmptyStudies />
               )}

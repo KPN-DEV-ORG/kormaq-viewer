@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { ImageModal, FooterAction } from '@ohif/ui-next';
-
+import { useTranslation } from 'react-i18next';
 const MAX_TEXTURE_SIZE = 10000;
 const DEFAULT_FILENAME = 'image';
+const viewportInteractionEvents = [
+  'contextmenu',
+  'dragstart',
+  'mousedown',
+  'mousemove',
+  'mouseup',
+  'pointerdown',
+  'pointermove',
+  'pointerup',
+  'wheel',
+];
 
 interface ViewportDownloadFormNewProps {
   onClose: () => void;
@@ -37,15 +48,28 @@ function ViewportDownloadFormNew({
   const [showWarningMessage, setShowWarningMessage] = useState(true);
   const [filename, setFilename] = useState(DEFAULT_FILENAME);
   const [fileType, setFileType] = useState('jpg');
+  const { t } = useTranslation('CaptureViewportModal');
 
   useEffect(() => {
     if (!viewportElement) {
       return;
     }
 
+    const preventViewportInteraction = (event: Event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
+    viewportInteractionEvents.forEach(eventName => {
+      viewportElement.addEventListener(eventName, preventViewportInteraction, true);
+    });
+
     onEnableViewport(viewportElement);
 
     return () => {
+      viewportInteractionEvents.forEach(eventName => {
+        viewportElement.removeEventListener(eventName, preventViewportInteraction, true);
+      });
       onDisableViewport();
     };
   }, [onDisableViewport, onEnableViewport, viewportElement]);
@@ -59,13 +83,15 @@ function ViewportDownloadFormNew({
               height: dimensions.height,
               width: dimensions.width,
               position: 'relative',
+              pointerEvents: 'none',
             }}
+            draggable={false}
             data-viewport-uid={viewportId}
             ref={setViewportElement}
           >
             {warningState.enabled && showWarningMessage && (
               <div
-                className="text-foreground absolute left-1/2 bottom-[5px] z-[1000] -translate-x-1/2 whitespace-nowrap rounded bg-black p-3 text-xs font-bold"
+                className="text-foreground absolute left-1/2 bottom-[5px] z-[1000] -translate-x-1/2 whitespace-nowrap rounded bg-popover p-3 text-xs font-bold"
                 style={{
                   fontSize: '12px',
                 }}
@@ -82,7 +108,7 @@ function ViewportDownloadFormNew({
               value={filename}
               onChange={e => setFilename(e.target.value)}
             >
-              File name
+              {t('File name')}
             </ImageModal.Filename>
             <ImageModal.Filetype
               selected={fileType}
@@ -94,6 +120,10 @@ function ViewportDownloadFormNew({
           <ImageModal.ImageSize
             width={dimensions.width.toString()}
             height={dimensions.height.toString()}
+            widthLabel={t('Width')}
+            heightLabel={t('Height')}
+            widthPlaceholder={t('Width')}
+            heightPlaceholder={t('Height')}
             onWidthChange={e => {
               onDimensionsChange({
                 ...dimensions,
@@ -109,7 +139,7 @@ function ViewportDownloadFormNew({
             maxWidth={MAX_TEXTURE_SIZE.toString()}
             maxHeight={MAX_TEXTURE_SIZE.toString()}
           >
-            Image size <span className="text-muted-foreground">px</span>
+            {t('Image size in pixels')}
           </ImageModal.ImageSize>
 
           <ImageModal.SwitchOption
@@ -117,7 +147,7 @@ function ViewportDownloadFormNew({
             checked={showAnnotations}
             onCheckedChange={onAnnotationsChange}
           >
-            Include annotations
+            {t('Include annotations')}
           </ImageModal.SwitchOption>
           {warningState.enabled && (
             <ImageModal.SwitchOption
@@ -125,19 +155,21 @@ function ViewportDownloadFormNew({
               checked={showWarningMessage}
               onCheckedChange={setShowWarningMessage}
             >
-              Include warning message
+              {t('Include warning message')}
             </ImageModal.SwitchOption>
           )}
           <FooterAction className="mt-2">
             <FooterAction.Right>
-              <FooterAction.Secondary onClick={onClose}>Cancel</FooterAction.Secondary>
+              <FooterAction.Secondary onClick={onClose}>
+                {t('Common:Cancel')}
+              </FooterAction.Secondary>
               <FooterAction.Primary
                 onClick={() => {
                   onDownload(filename || DEFAULT_FILENAME, fileType);
                   onClose();
                 }}
               >
-                Save
+                {t('Common:Save')}
               </FooterAction.Primary>
             </FooterAction.Right>
           </FooterAction>

@@ -183,14 +183,14 @@ export function ViewportGridProvider({ children, service }: ViewportGridProvider
             updatedViewport?.viewportOptions
           );
 
-          const displaySetOptions = updatedViewport?.displaySetOptions || [];
+          let displaySetOptions = [...(updatedViewport?.displaySetOptions || [])];
           if (!displaySetOptions.length) {
             // Copy all the display set options, assuming a full set of displaySet UID's is provided.
             if (state.isHangingProtocolLayout) {
-              displaySetOptions.push(...(previousViewport.displaySetOptions || []));
+              displaySetOptions = [...displaySetOptions, ...(previousViewport?.displaySetOptions || [])];
             }
             if (!displaySetOptions.length) {
-              displaySetOptions.push({});
+              displaySetOptions = [{}];
             }
           }
 
@@ -302,20 +302,17 @@ export function ViewportGridProvider({ children, service }: ViewportGridProvider
 
             viewport.isReady = false;
 
-            if (!viewport.viewportOptions.presentationIds) {
-              const presentationIds = service.getPresentationIds({
-                viewport,
-                viewports,
-              });
-              viewport.viewportOptions.presentationIds = presentationIds;
-            }
+            viewport.viewportOptions.presentationIds ||= service.getPresentationIds({
+              viewport,
+              viewports,
+            });
           }
         }
 
         activeViewportIdToSet =
           activeViewportIdToSet ?? determineActiveViewportId(state, viewports);
 
-        const ret = {
+        return {
           ...state,
           activeViewportId: activeViewportIdToSet,
           layout: {
@@ -327,7 +324,6 @@ export function ViewportGridProvider({ children, service }: ViewportGridProvider
           viewports,
           isHangingProtocolLayout,
         };
-        return ret;
       }
       case 'RESET': {
         return DEFAULT_STATE;
@@ -404,8 +400,17 @@ export function ViewportGridProvider({ children, service }: ViewportGridProvider
 
   const getGridViewportsReady = useCallback(() => {
     const { viewports } = viewportGridState;
-    const readyViewports = Array.from(viewports.values()).filter(viewport => viewport.isReady);
-    return readyViewports.length === viewports.size;
+    // Filter viewports that have display sets (i.e., have content to display)
+    const viewportsWithContent = Array.from(viewports.values()).filter(
+      viewport => viewport.displaySetInstanceUIDs?.length > 0
+    );
+    // If there are no viewports with content, return false
+    if (viewportsWithContent.length === 0) {
+      return false;
+    }
+    // Check if all viewports with content are ready
+    const readyViewports = viewportsWithContent.filter(viewport => viewport.isReady);
+    return readyViewports.length === viewportsWithContent.length;
   }, [viewportGridState]);
 
   const setLayout = useCallback(

@@ -1,9 +1,12 @@
+import { utils } from '@ohif/core';
 import React, { useEffect, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { getEnabledElement, StackViewport, BaseVolumeViewport } from '@cornerstonejs/core';
 import { ToolGroupManager, segmentation, Enums } from '@cornerstonejs/tools';
 import { getEnabledElement as OHIFgetEnabledElement } from '../state';
 import { useSystem } from '@ohif/core/src';
+
+const { downloadUrl } = utils;
 
 const DEFAULT_SIZE = 512;
 const MAX_TEXTURE_SIZE = 10000;
@@ -62,9 +65,16 @@ const CornerstoneViewportDownloadForm = ({
     }, {});
 
     return () => {
+      toolGroup?.removeViewports(renderingEngineId, VIEWPORT_ID);
+
       Object.keys(toolModeAndBindings).forEach(toolName => {
         const { mode, bindings } = toolModeAndBindings[toolName];
-        toolGroup.setToolMode(toolName, mode, { bindings });
+        try {
+          toolGroup.setToolMode(toolName, mode, { bindings });
+        } catch (error) {
+          // Handle errors when restoring tool mode during cleanup (e.g., when tool state is undefined)
+          console.debug('Error restoring tool mode during cleanup:', toolName, error);
+        }
       });
     };
   }, []);
@@ -73,6 +83,10 @@ const CornerstoneViewportDownloadForm = ({
     if (!viewportElement) {
       return;
     }
+
+    // The capture preview is for viewing/export only, so it should not receive
+    // tool interaction events from the source viewport's tool group.
+    viewportElement.style.pointerEvents = 'none';
 
     const { viewport } = getEnabledElement(activeViewportElement);
 
@@ -90,6 +104,7 @@ const CornerstoneViewportDownloadForm = ({
   };
 
   const handleDisableViewport = async () => {
+    toolGroup?.removeViewports(renderingEngineId, VIEWPORT_ID);
     renderingEngine.disableElement(VIEWPORT_ID);
   };
 
@@ -121,7 +136,7 @@ const CornerstoneViewportDownloadForm = ({
         downloadViewport.setVolumes([{ volumeId: volumeIds[0] }]);
       }
 
-      if (segmentationRepresentations.length > 0) {
+      if (segmentationRepresentations?.length) {
         segmentationRepresentations.forEach(segRepresentation => {
           const { segmentationId, colorLUTIndex, type } = segRepresentation;
           if (type === Enums.SegmentationRepresentations.Labelmap) {
@@ -207,7 +222,7 @@ const CornerstoneViewportDownloadForm = ({
     }
   }, [viewportDimensions, showAnnotations]);
 
-  const handleDownload = async (filename: string, fileType: string) => {
+  const handleDownload = async (baseFilename: string, fileType: string) => {
     const divForDownloadViewport = document.querySelector(
       `div[data-viewport-uid="${VIEWPORT_ID}"]`
     );
@@ -217,11 +232,9 @@ const CornerstoneViewportDownloadForm = ({
       return;
     }
 
+    const filename = `${baseFilename}.${fileType}`;
     const canvas = await html2canvas(divForDownloadViewport as HTMLElement);
-    const link = document.createElement('a');
-    link.download = `${filename}.${fileType}`;
-    link.href = canvas.toDataURL(`image/${fileType}`, 1.0);
-    link.click();
+    downloadUrl(canvas.toDataURL(`image/${fileType}`, 1.0), { filename });
   };
 
   const ViewportDownloadFormNew = customizationService.getCustomization(

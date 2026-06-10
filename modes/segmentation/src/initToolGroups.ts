@@ -1,3 +1,5 @@
+import { MIN_SEGMENTATION_DRAWING_RADIUS, MAX_SEGMENTATION_DRAWING_RADIUS } from './constants';
+
 const colours = {
   'viewport-0': 'rgb(200, 0, 0)',
   'viewport-1': 'rgb(200, 200, 0)',
@@ -10,16 +12,18 @@ const colorsByOrientation = {
   coronal: 'rgb(0, 200, 0)',
 };
 
+const noDefaultBindings = [];
+
 function createTools({ utilityModule, commandsManager }) {
   const { toolNames, Enums } = utilityModule.exports;
 
   const tools = {
     active: [
       { toolName: toolNames.WindowLevel, bindings: [{ mouseButton: Enums.MouseBindings.Primary }] },
-      { toolName: toolNames.Pan, bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }] },
+      { toolName: toolNames.Pan, bindings: noDefaultBindings },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
@@ -32,6 +36,8 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'FILL_INSIDE_CIRCLE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -48,6 +54,8 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'ERASE_INSIDE_CIRCLE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -55,6 +63,8 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'FILL_INSIDE_SPHERE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -62,6 +72,8 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'ERASE_INSIDE_SPHERE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -69,6 +81,8 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'THRESHOLD_INSIDE_CIRCLE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -76,6 +90,8 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'THRESHOLD_INSIDE_SPHERE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
         },
       },
       {
@@ -83,6 +99,8 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'THRESHOLD_INSIDE_CIRCLE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
           threshold: {
             isDynamic: true,
             dynamicRadius: 3,
@@ -100,11 +118,16 @@ function createTools({ utilityModule, commandsManager }) {
         parentTool: 'Brush',
         configuration: {
           activeStrategy: 'THRESHOLD_INSIDE_SPHERE',
+          minRadius: MIN_SEGMENTATION_DRAWING_RADIUS,
+          maxRadius: MAX_SEGMENTATION_DRAWING_RADIUS,
           threshold: {
             isDynamic: true,
             dynamicRadius: 3,
           },
         },
+      },
+      {
+        toolName: toolNames.LabelMapEditWithContourTool,
       },
       { toolName: toolNames.CircleScissors },
       { toolName: toolNames.RectangleScissors },
@@ -114,6 +137,42 @@ function createTools({ utilityModule, commandsManager }) {
       { toolName: toolNames.WindowLevelRegion },
 
       { toolName: toolNames.UltrasoundDirectional },
+      {
+        toolName: toolNames.PlanarFreehandContourSegmentation,
+      },
+      { toolName: toolNames.LivewireContourSegmentation },
+      { toolName: toolNames.SculptorTool },
+      { toolName: toolNames.PlanarFreehandROI },
+      {
+        toolName: 'CatmullRomSplineROI',
+        parentTool: toolNames.SplineContourSegmentation,
+        configuration: {
+          spline: {
+            type: 'CATMULLROM',
+            enableTwoPointPreview: true,
+          },
+        },
+      },
+      {
+        toolName: 'LinearSplineROI',
+        parentTool: toolNames.SplineContourSegmentation,
+        configuration: {
+          spline: {
+            type: 'LINEAR',
+            enableTwoPointPreview: true,
+          },
+        },
+      },
+      {
+        toolName: 'BSplineROI',
+        parentTool: toolNames.SplineContourSegmentation,
+        configuration: {
+          spline: {
+            type: 'BSPLINE',
+            enableTwoPointPreview: true,
+          },
+        },
+      },
     ],
     disabled: [{ toolName: toolNames.ReferenceLines }, { toolName: toolNames.AdvancedMagnify }],
   };
@@ -174,6 +233,47 @@ function initMPRToolGroup(extensionManager, toolGroupService, commandsManager) {
   toolGroupService.createToolGroupAndAddTools('mpr', tools);
 }
 
+function initMIPToolGroup(extensionManager, toolGroupService) {
+  const utilityModule = extensionManager.getModuleEntry(
+    '@ohif/extension-cornerstone.utilityModule.tools'
+  );
+
+  const { toolNames, Enums } = utilityModule.exports;
+
+  const tools = {
+    active: [
+      {
+        toolName: toolNames.WindowLevel,
+        bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
+      },
+      {
+        toolName: toolNames.StackScroll,
+        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }, { numTouchPoints: 3 }],
+      },
+      {
+        toolName: toolNames.TrackballRotateTool,
+        bindings: noDefaultBindings,
+      },
+      {
+        toolName: toolNames.Pan,
+        bindings: noDefaultBindings,
+      },
+      {
+        toolName: toolNames.Zoom,
+        bindings: noDefaultBindings,
+      },
+    ],
+    disabled: [
+      {
+        toolName: toolNames.AdvancedMagnify,
+      },
+      { toolName: toolNames.ReferenceLines },
+    ],
+  };
+
+  toolGroupService.createToolGroupAndAddTools('mip', tools);
+}
+
 function initVolume3DToolGroup(extensionManager, toolGroupService) {
   const utilityModule = extensionManager.getModuleEntry(
     '@ohif/extension-cornerstone.utilityModule.tools'
@@ -189,11 +289,11 @@ function initVolume3DToolGroup(extensionManager, toolGroupService) {
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
     ],
   };
@@ -204,6 +304,7 @@ function initVolume3DToolGroup(extensionManager, toolGroupService) {
 function initToolGroups(extensionManager, toolGroupService, commandsManager) {
   initDefaultToolGroup(extensionManager, toolGroupService, commandsManager, 'default');
   initMPRToolGroup(extensionManager, toolGroupService, commandsManager);
+  initMIPToolGroup(extensionManager, toolGroupService);
   initVolume3DToolGroup(extensionManager, toolGroupService);
 }
 

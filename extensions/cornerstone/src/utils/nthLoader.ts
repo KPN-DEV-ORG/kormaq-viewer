@@ -1,10 +1,25 @@
 import { cache, imageLoadPoolManager, Enums } from '@cornerstonejs/core';
 import getNthFrames from './getNthFrames';
 import interleave from './interleave';
+import {
+  isWaitingForMatchedViewports,
+  rebuildVolumeIdMapsToLoad,
+  resetInterleaveLoaderState,
+  syncInterleaveLoaderStateToMatchDetails,
+} from './interleaveLoaderState';
 
 // Map of volumeId and SeriesInstanceId
 const volumeIdMapsToLoad = new Map<string, string>();
 const viewportIdVolumeInputArrayMap = new Map<string, unknown[]>();
+const loaderState = {
+  volumeIdMapsToLoad,
+  viewportIdVolumeInputArrayMap,
+  activeMatchSignature: null,
+};
+
+export function resetInterleaveNthLoaderState(): void {
+  resetInterleaveLoaderState(loaderState);
+}
 
 /**
  * This function caches the volumeUIDs until all the volumes inside the
@@ -18,7 +33,14 @@ const viewportIdVolumeInputArrayMap = new Map<string, unknown[]>();
 export default function interleaveNthLoader({
   data: { viewportId, volumeInputArray },
   displaySetsMatchDetails,
+  viewportMatchDetails: matchDetails,
 }) {
+  if (!volumeInputArray?.length) {
+    return;
+  }
+
+  syncInterleaveLoaderStateToMatchDetails(loaderState, matchDetails, viewportId);
+
   viewportIdVolumeInputArrayMap.set(viewportId, volumeInputArray);
 
   // Based on the volumeInputs store the volumeIds and SeriesInstanceIds
@@ -29,6 +51,8 @@ export default function interleaveNthLoader({
 
     if (!volume) {
       console.log("interleaveNthLoader::No volume, can't load it");
+      viewportIdVolumeInputArrayMap.delete(viewportId);
+      rebuildVolumeIdMapsToLoad(loaderState);
       return;
     }
 
@@ -37,6 +61,10 @@ export default function interleaveNthLoader({
       const { metadata } = volume;
       volumeIdMapsToLoad.set(volumeId, metadata.SeriesInstanceUID);
     }
+  }
+
+  if (isWaitingForMatchedViewports(loaderState, matchDetails)) {
+    return null;
   }
 
   const volumeIds = Array.from(volumeIdMapsToLoad.keys()).slice();
@@ -58,6 +86,15 @@ export default function interleaveNthLoader({
 
   const requestType = Enums.RequestType.Prefetch;
   const priority = 0;
+
+  if (finalRequests.length) {
+    volumes.forEach(volume => {
+      if (volume?.loadStatus) {
+        volume.loadStatus.loading = true;
+        volume.loadStatus.cancelled = false;
+      }
+    });
+  }
 
   finalRequests.forEach(({ callLoadImage, additionalDetails, imageId, imageIdIndex, options }) => {
     const callLoadImageBound = callLoadImage.bind(null, imageId, imageIdIndex, options);

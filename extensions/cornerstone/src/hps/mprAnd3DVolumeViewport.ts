@@ -1,5 +1,7 @@
 import { HYDRATE_SEG_SYNC_GROUP, VOI_SYNC_GROUP } from './mpr';
 import i18n from 'i18next';
+import { volume3DDisplayPresets } from './volume3DDisplayPresets';
+import { DEFAULT_MIP_SLAB_THICKNESS } from '../utils/projectionUtils';
 export const mprAnd3DVolumeViewport = {
   id: 'mprAnd3DVolumeViewport',
   locked: true,
@@ -10,6 +12,7 @@ export const mprAnd3DVolumeViewport = {
   editableBy: {},
   protocolMatchingRules: [],
   imageLoadStrategy: 'interleaveCenter',
+  callbacks: { onViewportDataInitialized: ['setCTBoneOnlyRendering'] },
   displaySetSelectors: {
     activeDisplaySet: {
       seriesMatchingRules: [
@@ -60,6 +63,10 @@ export const mprAnd3DVolumeViewport = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -69,7 +76,7 @@ export const mprAnd3DVolumeViewport = {
             viewportType: 'volume3d',
             orientation: 'coronal',
             customViewportProps: {
-              hideOverlays: true,
+              hideOverlays: false,
             },
             syncGroups: [HYDRATE_SEG_SYNC_GROUP],
           },
@@ -77,11 +84,7 @@ export const mprAnd3DVolumeViewport = {
             {
               id: 'activeDisplaySet',
               options: {
-                displayPreset: {
-                  CT: 'CT-Bone',
-                  MR: 'MR-Default',
-                  default: 'CT-Bone',
-                },
+                displayPreset: volume3DDisplayPresets,
               },
             },
           ],
@@ -99,6 +102,10 @@ export const mprAnd3DVolumeViewport = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -115,6 +122,10 @@ export const mprAnd3DVolumeViewport = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },

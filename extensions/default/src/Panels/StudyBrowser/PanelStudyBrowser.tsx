@@ -12,6 +12,16 @@ import { type TabsProps } from '@ohif/core/src/utils/createStudyBrowserTabs';
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
 const thumbnailNoImageModalities = ['SR', 'SEG', 'RTSTRUCT', 'RTPLAN', 'RTDOSE', 'DOC', 'PMAP'];
+const mobileViewportRepaintMediaQuery = '(hover: none), (pointer: coarse), (max-width: 767px)';
+const mobilePanelLayoutMediaQuery = '(max-width: 767px)';
+
+function shouldRepaintViewportAfterThumbnailLoad() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(mobileViewportRepaintMediaQuery).matches
+  );
+}
 
 /**
  * Study Browser component that displays and manages studies and their display sets
@@ -24,6 +34,7 @@ function PanelStudyBrowser({
   customMapDisplaySets,
   onClickUntrack,
   onDoubleClickThumbnailHandlerCallBack,
+  sidePanel,
 }) {
   const { servicesManager, commandsManager, extensionManager } = useSystem();
   const { displaySetService, customizationService } = servicesManager.services;
@@ -48,12 +59,36 @@ function PanelStudyBrowser({
   const [displaySetsLoadingState, setDisplaySetsLoadingState] = useState({});
   const [thumbnailImageSrcMap, setThumbnailImageSrcMap] = useState({});
   const [jumpToDisplaySet, setJumpToDisplaySet] = useState(null);
+  const [isMobilePanelLayout, setIsMobilePanelLayout] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(mobilePanelLayoutMediaQuery).matches
+  );
 
   const [viewPresets, setViewPresets] = useState(
     customizationService.getCustomization('studyBrowser.viewPresets')
   );
 
   const [actionIcons, setActionIcons] = useState(defaultActionIcons);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(mobilePanelLayoutMediaQuery);
+    const syncIsMobilePanelLayout = () => {
+      setIsMobilePanelLayout(mediaQuery.matches);
+    };
+
+    syncIsMobilePanelLayout();
+    mediaQuery.addEventListener?.('change', syncIsMobilePanelLayout);
+
+    return () => {
+      mediaQuery.removeEventListener?.('change', syncIsMobilePanelLayout);
+    };
+  }, []);
 
   // multiple can be true or false
   const updateActionIconValue = actionIcon => {
@@ -76,6 +111,20 @@ function PanelStudyBrowser({
 
   const mapDisplaySetsWithState = customMapDisplaySets || _mapDisplaySets;
 
+  const scheduleMobileViewportRepaint = useCallback(() => {
+    const { cornerstoneViewportService } = servicesManager.services;
+
+    const resizeAndRender = () => {
+      cornerstoneViewportService?.resize?.();
+      cornerstoneViewportService?.getRenderingEngineIfExists?.()?.render?.();
+    };
+
+    resizeAndRender();
+    window.requestAnimationFrame?.(resizeAndRender);
+    window.setTimeout(resizeAndRender, 120);
+    window.setTimeout(resizeAndRender, 360);
+  }, [servicesManager.services]);
+
   const onDoubleClickThumbnailHandler = useCallback(
     async displaySetInstanceUID => {
       const customHandler = customizationService.getCustomization(
@@ -96,6 +145,10 @@ function PanelStudyBrowser({
         await handler(displaySetInstanceUID);
       }
       onDoubleClickThumbnailHandlerCallBack?.(displaySetInstanceUID);
+
+      if (shouldRepaintViewportAfterThumbnailLoad()) {
+        scheduleMobileViewportRepaint();
+      }
     },
     [
       activeViewportId,
@@ -103,7 +156,17 @@ function PanelStudyBrowser({
       servicesManager,
       isHangingProtocolLayout,
       customizationService,
+      extensionManager,
+      onDoubleClickThumbnailHandlerCallBack,
+      scheduleMobileViewportRepaint,
     ]
+  );
+
+  const onClickThumbnailHandler = useCallback(
+    displaySetInstanceUID => {
+      onDoubleClickThumbnailHandler(displaySetInstanceUID);
+    },
+    [onDoubleClickThumbnailHandler]
   );
 
   // ~~ studyDisplayList
@@ -179,9 +242,15 @@ function PanelStudyBrowser({
 
     let currentDisplaySets = displaySetService.activeDisplaySets;
     // filter non based on the list of modalities that are supported by cornerstone
-    currentDisplaySets = currentDisplaySets.filter(
-      ds => !thumbnailNoImageModalities.includes(ds.Modality) || ds.thumbnailSrc === null
-    );
+    currentDisplaySets = currentDisplaySets.filter(ds => {
+      const hasThumbnailProvider = ds.thumbnailSrc || typeof ds.getThumbnailSrc === 'function';
+
+      return (
+        !thumbnailNoImageModalities.includes(ds.Modality) ||
+        hasThumbnailProvider ||
+        ds.thumbnailSrc === null
+      );
+    });
 
     if (!currentDisplaySets.length) {
       return;
@@ -190,7 +259,7 @@ function PanelStudyBrowser({
     currentDisplaySets.forEach(async dSet => {
       const newImageSrcEntry = {};
       const displaySet = displaySetService.getDisplaySetByUID(dSet.displaySetInstanceUID);
-      const imageIds = dataSource.getImageIdsForDisplaySet(dSet);
+      const imageIds = getImageIdsForDisplaySet(dataSource, dSet);
 
       const imageId = getImageIdForThumbnail(displaySet, imageIds);
 
@@ -204,7 +273,7 @@ function PanelStudyBrowser({
         thumbnailSrc = await displaySet.getThumbnailSrc({ getImageSrc });
       }
       if (!thumbnailSrc && imageId) {
-        const thumbnailSrc = await getImageSrc(imageId);
+        thumbnailSrc = await getImageSrc(imageId);
         displaySet.thumbnailSrc = thumbnailSrc;
       }
       newImageSrcEntry[dSet.displaySetInstanceUID] = thumbnailSrc;
@@ -264,23 +333,23 @@ function PanelStudyBrowser({
             setJumpToDisplaySet(displaySetInstanceUID);
           }
 
-          const imageIds = dataSource.getImageIdsForDisplaySet(displaySet);
+          const imageIds = getImageIdsForDisplaySet(dataSource, displaySet);
           const imageId = getImageIdForThumbnail(displaySet, imageIds);
-
-          // TODO: Is it okay that imageIds are not returned here for SR displaysets?
-          if (!imageId) {
-            return;
-          }
 
           // When the image arrives, render it and store the result in the thumbnailImgSrcMap
           let { thumbnailSrc } = displaySet;
           if (!thumbnailSrc && displaySet.getThumbnailSrc) {
             thumbnailSrc = await displaySet.getThumbnailSrc({ getImageSrc });
           }
-          if (!thumbnailSrc) {
+          if (!thumbnailSrc && imageId) {
             thumbnailSrc = await getImageSrc(imageId);
             displaySet.thumbnailSrc = thumbnailSrc;
           }
+
+          if (!thumbnailSrc) {
+            return;
+          }
+
           newImageSrcEntry[displaySetInstanceUID] = thumbnailSrc;
 
           setThumbnailImageSrcMap(prevState => {
@@ -403,6 +472,8 @@ function PanelStudyBrowser({
   }, [expandedStudyInstanceUIDs, jumpToDisplaySet, tabs]);
 
   const activeDisplaySetInstanceUIDs = viewports.get(activeViewportId)?.displaySetInstanceUIDs;
+  const showSettings = actionIcons.find(icon => icon.id === 'settings')?.value;
+  const showCombinedMobileHeader = isMobilePanelLayout && sidePanel?.isSingleTab;
 
   return (
     <>
@@ -412,6 +483,13 @@ function PanelStudyBrowser({
           updateViewPresetValue={updateViewPresetValue}
           actionIcons={actionIcons}
           updateActionIconValue={updateActionIconValue}
+          tabs={tabs}
+          activeTabName={activeTabName}
+          onClickTab={setActiveTabName}
+          servicesManager={servicesManager}
+          showSettingsControls={isMobilePanelLayout && showSettings}
+          showSidePanelControls={showCombinedMobileHeader}
+          sidePanel={sidePanel}
         />
         <Separator
           orientation="horizontal"
@@ -430,10 +508,10 @@ function PanelStudyBrowser({
           setActiveTabName(clickedTabName);
         }}
         onClickUntrack={onClickUntrack}
-        onClickThumbnail={() => {}}
+        onClickThumbnail={onClickThumbnailHandler}
         onDoubleClickThumbnail={onDoubleClickThumbnailHandler}
         activeDisplaySetInstanceUIDs={activeDisplaySetInstanceUIDs}
-        showSettings={actionIcons.find(icon => icon.id === 'settings')?.value}
+        showSettings={!isMobilePanelLayout && showSettings}
         viewPresets={viewPresets}
         ThumbnailMenuItems={MoreDropdownMenu({
           commandsManager,
@@ -501,6 +579,7 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
         StudyInstanceUID: ds.StudyInstanceUID,
         componentType,
         imageSrc: thumbnailSrc || thumbnailImageSrcMap[displaySetInstanceUID],
+        imageContentType: ds.thumbnailContentType,
         dragData: {
           type: 'displayset',
           displaySetInstanceUID,
@@ -514,8 +593,10 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
 }
 
 function _getComponentType(ds) {
+  const hasRenderableThumbnail = ds.thumbnailSrc || typeof ds.getThumbnailSrc === 'function';
+
   if (
-    thumbnailNoImageModalities.includes(ds.Modality) ||
+    (thumbnailNoImageModalities.includes(ds.Modality) && !hasRenderableThumbnail) ||
     ds?.unsupported ||
     ds.thumbnailSrc === null
   ) {
@@ -525,7 +606,19 @@ function _getComponentType(ds) {
   return 'thumbnail';
 }
 
+function getImageIdsForDisplaySet(dataSource, displaySet) {
+  try {
+    return dataSource.getImageIdsForDisplaySet(displaySet) || [];
+  } catch {
+    return [];
+  }
+}
+
 function getImageIdForThumbnail(displaySet, imageIds) {
+  if (!imageIds?.length) {
+    return;
+  }
+
   let imageId;
   if (displaySet.isDynamicVolume) {
     const timePoints = displaySet.dynamicVolumeInfo.timePoints;

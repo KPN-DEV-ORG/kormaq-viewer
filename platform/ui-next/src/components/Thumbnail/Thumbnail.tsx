@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import { useDrag } from 'react-dnd';
@@ -12,6 +12,7 @@ const Thumbnail = ({
   displaySetInstanceUID,
   className,
   imageSrc,
+  imageContentType,
   imageAltText,
   description,
   seriesNumber,
@@ -44,20 +45,56 @@ const Thumbnail = ({
     },
   });
 
-  const [lastTap, setLastTap] = useState(0);
+  const lastTapRef = useRef(0);
+  const suppressClickRef = useRef(false);
+  const doubleTapDelay = 300;
+
+  const isInteractiveTarget = target => {
+    return (
+      target instanceof HTMLElement &&
+      !!target.closest('button,a,[role="menuitem"],[data-radix-collection-item]')
+    );
+  };
 
   const handleTouchEnd = e => {
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTap;
-    if (tapLength < 300 && tapLength > 0) {
-      onDoubleClick(e);
-    } else {
-      onClick(e);
+    if (isInteractiveTarget(e.target)) {
+      return;
     }
-    setLastTap(currentTime);
+
+    suppressClickRef.current = true;
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 400);
+
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
+    const currentTime = Date.now();
+    const tapLength = currentTime - lastTapRef.current;
+
+    if (tapLength < doubleTapDelay && tapLength > 0) {
+      lastTapRef.current = 0;
+      onDoubleClick(e);
+      return;
+    }
+
+    lastTapRef.current = currentTime;
+    onClick(e);
+  };
+
+  const handleClick = e => {
+    if (suppressClickRef.current) {
+      e.preventDefault();
+      return;
+    }
+
+    onClick(e);
   };
 
   const renderThumbnailPreset = () => {
+    const isPdfPreview = imageContentType === 'application/pdf';
+
     return (
       <div
         className={classnames(
@@ -65,17 +102,28 @@ const Thumbnail = ({
           isActive && 'bg-popover rounded'
         )}
       >
-        <div className="h-[114px] w-[128px]">
-          <div className="relative bg-background">
-            {imageSrc ? (
+        <div className="study-browser__thumbnail-preview h-[142px] w-[160px]">
+          <div className="bg-background relative">
+            {imageSrc && isPdfPreview ? (
+              <object
+                data={imageSrc}
+                type="application/pdf"
+                aria-label={imageAltText || description}
+                className="study-browser__thumbnail-preview-media pointer-events-none h-[142px] w-[160px] rounded bg-white"
+              >
+                <div className="study-browser__thumbnail-preview-media bg-background text-foreground flex h-[142px] w-[160px] items-center justify-center rounded text-[13px] font-semibold">
+                  PDF
+                </div>
+              </object>
+            ) : imageSrc ? (
               <img
                 src={imageSrc}
                 alt={imageAltText}
-                className="h-[114px] w-[128px] rounded object-contain"
+                className="study-browser__thumbnail-preview-media h-[142px] w-[160px] rounded object-contain"
                 crossOrigin="anonymous"
               />
             ) : (
-              <div className="bg-background h-[114px] w-[128px] rounded"></div>
+              <div className="study-browser__thumbnail-preview-media bg-background h-[142px] w-[160px] rounded"></div>
             )}
 
             {/* bottom left */}
@@ -88,7 +136,7 @@ const Thumbnail = ({
                 )}
               ></div>
               <div
-                className="text-[11px] font-semibold text-foreground"
+                className="text-foreground text-[11px] font-semibold"
                 data-cy="series-modality-label"
               >
                 {modality}
@@ -135,12 +183,12 @@ const Thumbnail = ({
             </div>
           </div>
         </div>
-        <div className="flex h-[52px] w-[128px] flex-col justify-start pt-px">
+        <div className="study-browser__thumbnail-details flex h-[54px] w-[160px] flex-col justify-start pt-px">
           <Tooltip>
             <TooltipContent>{description}</TooltipContent>
             <TooltipTrigger>
               <div
-                className="min-h-[18px] w-[128px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4 text-foreground"
+                className="study-browser__thumbnail-description text-foreground min-h-[18px] w-[160px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4"
                 data-cy="series-description-label"
               >
                 {description}
@@ -184,7 +232,7 @@ const Thumbnail = ({
           <div className="flex h-full w-[calc(100%-12px)] flex-col justify-start">
             <div className="flex items-center gap-[7px]">
               <div
-                className="text-[13px] font-semibold text-foreground"
+                className="text-foreground text-[13px] font-semibold"
                 data-cy="series-modality-label"
               >
                 {modality}
@@ -193,7 +241,7 @@ const Thumbnail = ({
                 <TooltipContent>{description}</TooltipContent>
                 <TooltipTrigger className="w-full overflow-hidden">
                   <div
-                    className="max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal text-foreground"
+                    className="text-foreground max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal"
                     data-cy="series-description-label"
                   >
                     {description}
@@ -260,8 +308,8 @@ const Thumbnail = ({
     <div
       className={classnames(
         className,
-        'bg-muted hover:bg-primary/30 group flex cursor-pointer select-none flex-col rounded outline-none',
-        viewPreset === 'thumbnails' && 'h-[170px] w-[135px]',
+        'study-browser__thumbnail bg-muted hover:bg-primary/30 group flex cursor-pointer select-none flex-col rounded outline-none',
+        viewPreset === 'thumbnails' && 'h-[204px] w-[168px]',
         viewPreset === 'list' && 'h-[40px] w-full'
       )}
       id={`thumbnail-${displaySetInstanceUID}`}
@@ -271,7 +319,7 @@ const Thumbnail = ({
           : 'study-browser-thumbnail'
       }
       data-series={seriesNumber}
-      onClick={onClick}
+      onClick={handleClick}
       onDoubleClick={onDoubleClick}
       onTouchEnd={handleTouchEnd}
       role="button"
@@ -291,6 +339,7 @@ Thumbnail.propTypes = {
   displaySetInstanceUID: PropTypes.string.isRequired,
   className: PropTypes.string,
   imageSrc: PropTypes.string,
+  imageContentType: PropTypes.string,
   /**
    * Data the thumbnail should expose to a receiving drop target. Use a matching
    * `dragData.type` to identify which targets can receive this draggable item.

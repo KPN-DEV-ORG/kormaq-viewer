@@ -1,5 +1,7 @@
 import { HYDRATE_SEG_SYNC_GROUP, VOI_SYNC_GROUP } from './mpr';
 import i18n from 'i18next';
+import { volume3DDisplayPresets } from './volume3DDisplayPresets';
+import { DEFAULT_MIP_SLAB_THICKNESS } from '../utils/projectionUtils';
 export const fourUp = {
   id: 'fourUp',
   locked: true,
@@ -12,6 +14,7 @@ export const fourUp = {
   editableBy: {},
   protocolMatchingRules: [],
   imageLoadStrategy: 'interleaveCenter',
+  callbacks: { onViewportDataInitialized: ['setCTBoneOnlyRendering'] },
   displaySetSelectors: {
     activeDisplaySet: {
       seriesMatchingRules: [
@@ -53,6 +56,10 @@ export const fourUp = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -62,7 +69,7 @@ export const fourUp = {
             viewportType: 'volume3d',
             orientation: 'coronal',
             customViewportProps: {
-              hideOverlays: true,
+              hideOverlays: false,
             },
             syncGroups: [HYDRATE_SEG_SYNC_GROUP],
           },
@@ -70,11 +77,7 @@ export const fourUp = {
             {
               id: 'activeDisplaySet',
               options: {
-                displayPreset: {
-                  CT: 'CT-Bone',
-                  MR: 'MR-Default',
-                  default: 'CT-Bone',
-                },
+                displayPreset: volume3DDisplayPresets,
               },
             },
           ],
@@ -92,6 +95,10 @@ export const fourUp = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -108,6 +115,10 @@ export const fourUp = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },

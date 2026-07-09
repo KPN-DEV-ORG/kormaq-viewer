@@ -21,6 +21,7 @@ export const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
   thumbnailList: '@ohif/extension-default.panelModule.seriesList',
+  studyReports: '@ohif/extension-default.panelModule.studyReports',
   hangingProtocol: '@ohif/extension-default.hangingProtocolModule.default',
   wsiSopClassHandler:
     '@ohif/extension-cornerstone.sopClassHandlerModule.DicomMicroscopySopClassHandler',
@@ -214,7 +215,7 @@ export const toolbarSections = {
     'Zoom',
     'Pan',
     'TrackballRotate',
-    'WindowLevel',
+    'windowLevelMenuEmbedded',
     'Capture',
     'Layout',
     'ProjectionMIP',
@@ -225,9 +226,7 @@ export const toolbarSections = {
 
   [TOOLBAR_SECTIONS.viewportActionMenu.topLeft]: ['orientationMenu', 'dataOverlayMenu'],
 
-  [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: [
-    'ProjectionControlsMenu',
-  ],
+  [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: ['ProjectionControlsMenu'],
 
   AdvancedRenderingControls: [
     'windowLevelMenuEmbedded',
@@ -243,7 +242,7 @@ export const toolbarSections = {
     'navigationComponent',
   ],
 
-  [TOOLBAR_SECTIONS.viewportActionMenu.bottomLeft]: ['windowLevelMenu'],
+  [TOOLBAR_SECTIONS.viewportActionMenu.bottomLeft]: [],
 
   MeasurementTools: [
     'Length',
@@ -289,7 +288,7 @@ export const basicLayout = {
   props: {
     leftPanels: [ohif.thumbnailList],
     leftPanelResizable: true,
-    rightPanels: [cornerstone.segmentation, cornerstone.measurements],
+    rightPanels: [cornerstone.segmentation, cornerstone.measurements, ohif.studyReports],
     rightPanelClosed: true,
     rightPanelResizable: true,
     viewports: [

@@ -6,6 +6,7 @@ import { HangingProtocolService, CommandsManager } from '@ohif/core';
 import { useAppConfig } from '@state';
 import ViewerHeader from './ViewerHeader';
 import SidePanelWithServices from '../Components/SidePanelWithServices';
+import PanelStudyReports from '../Panels/StudyReports/PanelStudyReports';
 import { Onboarding, ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@ohif/ui-next';
 import useResizablePanels from './ResizablePanelsHook';
 import './ViewerLayout.css';
@@ -30,6 +31,7 @@ function ViewerLayout({
   rightPanelInitialExpandedWidth,
   leftPanelMinimumExpandedWidth,
   rightPanelMinimumExpandedWidth,
+  rightPanelsOnToolbar = false,
 }: withAppTypes): React.FunctionComponent {
   const [appConfig] = useAppConfig();
 
@@ -43,6 +45,8 @@ function ViewerLayout({
   );
 
   const [hasRightPanels, setHasRightPanels] = useState(hasPanels('right'));
+  const hasVisibleRightPanels = hasRightPanels && !rightPanelsOnToolbar;
+  const [activeToolbarPanel, setActiveToolbarPanel] = useState(null);
   const [hasLeftPanels, setHasLeftPanels] = useState(hasPanels('left'));
   const [leftPanelClosedState, setLeftPanelClosed] = useState(leftPanelClosed);
   const [rightPanelClosedState, setRightPanelClosed] = useState(rightPanelClosed);
@@ -66,7 +70,7 @@ function ViewerLayout({
     rightPanelClosedState,
     setRightPanelClosed,
     hasLeftPanels,
-    hasRightPanels,
+    hasVisibleRightPanels,
     leftPanelInitialExpandedWidth,
     rightPanelInitialExpandedWidth,
     leftPanelMinimumExpandedWidth,
@@ -77,11 +81,35 @@ function ViewerLayout({
     (document.activeElement as HTMLElement)?.blur();
   };
 
+  const handleToolbarPanelSelect = useCallback(
+    panel => {
+      if (isMobile && panel.name === 'studyReports') {
+        setActiveToolbarPanel(null);
+        uiDialogService?.show({
+          id: MOBILE_STUDY_REPORTS_DIALOG_ID,
+          title: panel.label,
+          content: PanelStudyReports,
+          contentProps: { servicesManager },
+          isDraggable: true,
+          shouldCloseOnEsc: true,
+          shouldCloseOnOverlayClick: false,
+          showOverlay: false,
+          containerClassName:
+            'mobile-study-reports-dialog h-[min(82dvh,720px)] max-h-[calc(100dvh-20px)] w-[calc(100vw-20px)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-0',
+        });
+        return;
+      }
+
+      setActiveToolbarPanel(activePanel => (activePanel?.id === panel.id ? null : panel));
+    },
+    [isMobile, servicesManager, uiDialogService]
+  );
+
   const scheduleViewportResize = useCallback(() => {
     const { cornerstoneViewportService } = servicesManager.services;
 
     const resizeAndRender = () => {
-      cornerstoneViewportService?.resize?.();
+      cornerstoneViewportService?.resize?.(true);
       cornerstoneViewportService?.getRenderingEngineIfExists?.()?.render?.();
     };
 
@@ -282,6 +310,7 @@ function ViewerLayout({
   }, [panelService, hasPanels, isMobile]);
 
   const viewportComponents = viewports.map(getViewportComponentData);
+  const ToolbarPanelContent = activeToolbarPanel?.content as React.ComponentType<any>;
 
   return (
     <div className="viewer-layout">
@@ -290,6 +319,9 @@ function ViewerLayout({
         extensionManager={extensionManager}
         servicesManager={servicesManager}
         appConfig={appConfig}
+        rightPanelsOnToolbar={rightPanelsOnToolbar}
+        activeToolbarPanelId={activeToolbarPanel?.id}
+        onToolbarPanelSelect={handleToolbarPanelSelect}
       />
       <div
         className="viewer-layout__body bg-background relative flex w-full flex-row flex-nowrap items-stretch overflow-hidden"
@@ -340,10 +372,32 @@ function ViewerLayout({
                     viewportComponents={viewportComponents}
                     commandsManager={commandsManager}
                   />
+                  {rightPanelsOnToolbar && ToolbarPanelContent && (
+                    <aside
+                      className="viewer-layout__toolbar-panel"
+                      aria-label={activeToolbarPanel.label}
+                      data-cy="toolbar-panel"
+                    >
+                      <div className="viewer-layout__toolbar-panel-header">
+                        <span>{activeToolbarPanel.label}</span>
+                        <button
+                          type="button"
+                          className="viewer-layout__toolbar-panel-close"
+                          aria-label={`Close ${activeToolbarPanel.label}`}
+                          onClick={() => setActiveToolbarPanel(null)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="viewer-layout__toolbar-panel-content">
+                        <ToolbarPanelContent servicesManager={servicesManager} />
+                      </div>
+                    </aside>
+                  )}
                 </div>
               </div>
             </ResizablePanel>
-            {hasRightPanels && !isMobile ? (
+            {hasVisibleRightPanels && !isMobile ? (
               <>
                 <ResizableHandle
                   onDragging={onHandleDragging}

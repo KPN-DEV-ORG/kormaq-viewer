@@ -298,6 +298,20 @@ function initMIPToolGroup(extensionManager, toolGroupService) {
         bindings: noDefaultBindings,
       },
     ],
+    passive: [
+      { toolName: toolNames.Length },
+      { toolName: toolNames.Bidirectional },
+      { toolName: toolNames.DragProbe },
+      { toolName: toolNames.Probe },
+      { toolName: toolNames.EllipticalROI },
+      { toolName: toolNames.CircleROI },
+      { toolName: toolNames.RectangleROI },
+      { toolName: toolNames.Angle },
+      { toolName: toolNames.CobbAngle },
+      { toolName: toolNames.PlanarFreehandROI },
+      { toolName: toolNames.SplineROI },
+      { toolName: toolNames.LivewireContour },
+    ],
     disabled: [
       {
         toolName: toolNames.AdvancedMagnify,

@@ -4,6 +4,7 @@ import { MenuContext } from './Menu';
 type ItemProps = {
   label: string;
   secondaryLabel?: string;
+  description?: string;
   icon?: ReactNode;
   rightIcon?: ReactNode;
   onClick?: () => void;
@@ -15,6 +16,7 @@ type ItemProps = {
 const Item = ({
   label,
   secondaryLabel,
+  description,
   icon,
   rightIcon,
   onClick,
@@ -31,7 +33,9 @@ const Item = ({
 
   return (
     <div
-      className="hover:bg-accent flex h-8 w-full flex-shrink-0 cursor-pointer items-center px-2 text-base leading-[18px] hover:rounded"
+      className={`hover:bg-accent flex w-full flex-shrink-0 cursor-pointer px-2 text-base leading-[18px] hover:rounded ${
+        description ? 'min-h-8 flex-col items-stretch py-1' : 'h-8 items-center'
+      }`}
       onClick={onClickHandler}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -39,11 +43,18 @@ const Item = ({
       {(icon || useIconSpace) && (
         <div className="flex w-7 flex-shrink-0 items-center justify-center">{icon}</div>
       )}
-      <span className="flex-grow">{label}</span>
-      {secondaryLabel && (
-        <span className="text-muted-foreground ml-2 flex-shrink-0">{secondaryLabel}</span>
+      <span className="flex w-full items-center">
+        <span className="flex-grow">{label}</span>
+        {secondaryLabel && (
+          <span className="text-muted-foreground ml-2 flex-shrink-0">{secondaryLabel}</span>
+        )}
+        {rightIcon && <span className="ml-2 flex-shrink-0">{rightIcon}</span>}
+      </span>
+      {description && (
+        <span className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-4">
+          {description}
+        </span>
       )}
-      {rightIcon && <div className="ml-2 flex-shrink-0">{rightIcon}</div>}
     </div>
   );
 };

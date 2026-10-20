@@ -568,7 +568,7 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
 
       array.push({
         displaySetInstanceUID,
-        description: ds.SeriesDescription || '',
+        description: getSeriesDescription(ds),
         seriesNumber: ds.SeriesNumber,
         modality: ds.Modality,
         seriesDate: formatDate(ds.SeriesDate),
@@ -590,6 +590,49 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
     });
 
   return [...thumbnailDisplaySets, ...thumbnailNoImageDisplaySets];
+}
+
+function getSeriesDescription(displaySet) {
+  const seriesDescription = getDisplaySetMetadataTextFromSources(displaySet, 'SeriesDescription');
+  if (seriesDescription) {
+    return seriesDescription;
+  }
+
+  const protocolName = getDisplaySetMetadataTextFromSources(displaySet, 'ProtocolName');
+  if (protocolName) {
+    return protocolName;
+  }
+
+  const imageType = getDisplaySetMetadataTextFromSources(displaySet, 'ImageType');
+  const viewPosition = getDisplaySetMetadataTextFromSources(displaySet, 'ViewPosition');
+  const acquisitionDescription = [imageType, viewPosition].filter(Boolean).join(' · ');
+  if (acquisitionDescription) {
+    return acquisitionDescription;
+  }
+
+  const modality = getDisplaySetMetadataTextFromSources(displaySet, 'Modality') || 'Imaging';
+  return `${modality} series`;
+}
+
+function getDisplaySetMetadataTextFromSources(displaySet, fieldName) {
+  const instances = displaySet?.instances;
+  const values = [
+    displaySet?.[fieldName],
+    displaySet?.instance?.[fieldName],
+    instances?.[0]?.[fieldName],
+  ];
+
+  return values.map(getDisplaySetMetadataText).find(Boolean) || '';
+}
+
+function getDisplaySetMetadataText(value) {
+  const values = Array.isArray(value) ? value : [value];
+
+  return values
+    .flatMap(item => (typeof item === 'string' ? item.split('\\') : [item]))
+    .map(item => (item == null ? '' : String(item).trim()))
+    .filter(Boolean)
+    .join(' · ');
 }
 
 function _getComponentType(ds) {

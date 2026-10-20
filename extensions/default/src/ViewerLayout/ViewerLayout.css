@@ -288,7 +288,7 @@
   .viewer-layout__left-panel .study-browser__thumbnail-list-inner {
     flex-direction: row !important;
     align-items: stretch;
-    padding: 4px 8px !important;
+    padding: 2px !important;
   }
 
   .viewer-layout__left-panel .study-browser__thumbnail-grid {
@@ -311,7 +311,7 @@
   .viewer-layout__left-panel
     .study-browser__thumbnail-grid:not(.study-browser__thumbnail-grid--list)
     .study-browser__thumbnail {
-    height: 170px !important;
+    height: 164px !important;
     width: 140px !important;
   }
 
@@ -321,21 +321,21 @@
   .viewer-layout__left-panel
     .study-browser__thumbnail-grid:not(.study-browser__thumbnail-grid--list)
     .study-browser__thumbnail-preview-media {
-    height: 118px !important;
-    width: 132px !important;
+    height: 130px !important;
+    width: 136px !important;
   }
 
   .viewer-layout__left-panel
     .study-browser__thumbnail-grid:not(.study-browser__thumbnail-grid--list)
     .study-browser__thumbnail-details {
-    height: 42px !important;
-    width: 132px !important;
+    height: 30px !important;
+    width: 136px !important;
   }
 
   .viewer-layout__left-panel
     .study-browser__thumbnail-grid:not(.study-browser__thumbnail-grid--list)
     .study-browser__thumbnail-description {
-    width: 132px !important;
+    width: 136px !important;
   }
 
   .viewer-layout__left-panel .study-browser__thumbnail-grid--list .study-browser__thumbnail {

@@ -474,12 +474,15 @@ function createDicomWebApi(dicomWebConfig: DicomWebConfig, servicesManager) {
           seriesSummaryMetadata[instance.SeriesInstanceUID] = {
             StudyInstanceUID: instance.StudyInstanceUID,
             StudyDescription: instance.StudyDescription,
+            InstitutionName: instance.InstitutionName,
             SeriesInstanceUID: instance.SeriesInstanceUID,
             SeriesDescription: instance.SeriesDescription,
             SeriesNumber: instance.SeriesNumber,
             SeriesTime: instance.SeriesTime,
             SOPClassUID: instance.SOPClassUID,
             ProtocolName: instance.ProtocolName,
+            ImageType: instance.ImageType,
+            ViewPosition: instance.ViewPosition,
             Modality: instance.Modality,
           };
         }

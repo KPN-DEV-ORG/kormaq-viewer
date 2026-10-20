@@ -84,6 +84,10 @@ export function processSeriesResults(qidoSeries) {
         seriesDate: utils.formatDate(getString(qidoSeries['00080021'])),
         numSeriesInstances: Number(getString(qidoSeries['00201209'])),
         description: getString(qidoSeries['0008103E']),
+        protocolName: getString(qidoSeries['00181030']),
+        imageType: getString(qidoSeries['00080008']),
+        viewPosition: getString(qidoSeries['00185101']),
+        InstitutionName: getString(qidoSeries['00080080']),
       })
     );
   }
@@ -117,9 +121,14 @@ async function search(dicomWebClient, studyInstanceUid, seriesInstanceUid, query
  * @returns {Promise} - Resolves SeriesMetadata[] in study
  */
 export function seriesInStudy(dicomWebClient, studyInstanceUID) {
-  // Series Description
-  // Already included?
-  const commaSeparatedFields = ['0008103E', '00080021'].join(',');
+  const commaSeparatedFields = [
+    '00080008', // Image Type
+    '00080021', // Series Date
+    '0008103E', // Series Description
+    '00181030', // Protocol Name
+    '00185101', // View Position
+    '00080080', // Institution Name
+  ].join(',');
   const queryParams = {
     includefield: commaSeparatedFields,
   };

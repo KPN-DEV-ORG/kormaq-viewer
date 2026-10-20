@@ -53,10 +53,12 @@ export function WindowLevelActionMenuContent({
     isOrthographicVolume,
     colorbarProperties,
     windowLevelPresets,
+    viewportDisplaySets,
     volumeRenderingPresets,
     volumeRenderingQualityRange,
   } = useViewportRendering(viewportId);
   const shouldHideProjectionControls = useShouldHideProjectionControls(viewportId);
+  const hasMRI = viewportDisplaySets?.some(displaySet => displaySet.Modality === 'MR');
 
   return (
     <AllInOneMenu.Menu
@@ -82,7 +84,7 @@ export function WindowLevelActionMenuContent({
           </AllInOneMenu.SubMenu>
         )}
 
-        {windowLevelPresets?.length > 0 && !is3DVolume && (
+        {(windowLevelPresets?.length > 0 || hasMRI) && !is3DVolume && (
           <AllInOneMenu.SubMenu
             key="windowLevelPresets"
             itemLabel={t('Modality Window Presets')}

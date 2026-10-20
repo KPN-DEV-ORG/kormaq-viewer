@@ -89,6 +89,17 @@ export default {
       },
     },
     {
+      id: 'InstitutionName',
+      inheritsFrom: 'ohif.overlayItem',
+      className: 'patient-info-overlay',
+      label: 'Institution:',
+      title: 'Institution',
+      condition: ({ referenceInstance, displaySet }) =>
+        referenceInstance?.InstitutionName || displaySet?.InstitutionName,
+      contentF: ({ referenceInstance, displaySet }) =>
+        referenceInstance?.InstitutionName || displaySet?.InstitutionName,
+    },
+    {
       id: 'ProjectionMode',
       inheritsFrom: 'ohif.overlayItem',
       label: '',

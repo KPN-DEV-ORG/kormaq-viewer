@@ -6,7 +6,7 @@ import { MIN_SEGMENTATION_DRAWING_RADIUS, MAX_SEGMENTATION_DRAWING_RADIUS } from
 const setToolActiveToolbar = {
   commandName: 'setToolActiveToolbar',
   commandOptions: {
-    toolGroupIds: [toolGroupIds.CT, toolGroupIds.PT, toolGroupIds.Fusion],
+    toolGroupIds: [toolGroupIds.CT, toolGroupIds.PT, toolGroupIds.Fusion, toolGroupIds.MIP],
   },
 };
 

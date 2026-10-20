@@ -2,9 +2,18 @@ import dcmjs from 'dcmjs';
 import { sortStudySeries } from '@ohif/core/src/utils/sortStudy';
 import RetrieveMetadataLoader from './retrieveMetadataLoader';
 
-// Series Date, Series Time, Series Description and Series Number to be included
-// in the series metadata query result
-const includeField = ['00080021', '00080031', '0008103E', '00200011'].join(',');
+// Include the series label and useful acquisition details in the initial series
+// metadata query so the study browser can identify a series before its instances load.
+const includeField = [
+  '00080008', // Image Type
+  '00080021', // Series Date
+  '00080031', // Series Time
+  '0008103E', // Series Description
+  '00181030', // Protocol Name
+  '00185101', // View Position
+  '00200011', // Series Number
+  '00080080', // Institution Name
+].join(',');
 
 export class DeferredPromise {
   metadata = undefined;

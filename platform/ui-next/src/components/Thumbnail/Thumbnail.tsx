@@ -98,20 +98,19 @@ const Thumbnail = ({
     return (
       <div
         className={classnames(
-          'flex h-full w-full flex-col items-center justify-center gap-[2px] p-[4px]',
-          isActive && 'bg-popover rounded'
+          'flex h-full w-full flex-col items-center justify-center gap-[1px] p-[1px]'
         )}
       >
-        <div className="study-browser__thumbnail-preview h-[142px] w-[160px]">
+        <div className="study-browser__thumbnail-preview h-[130px] w-[136px]">
           <div className="bg-background relative">
             {imageSrc && isPdfPreview ? (
               <object
                 data={imageSrc}
                 type="application/pdf"
                 aria-label={imageAltText || description}
-                className="study-browser__thumbnail-preview-media pointer-events-none h-[142px] w-[160px] rounded bg-white"
+                className="study-browser__thumbnail-preview-media pointer-events-none h-[130px] w-[136px] rounded bg-white"
               >
-                <div className="study-browser__thumbnail-preview-media bg-background text-foreground flex h-[142px] w-[160px] items-center justify-center rounded text-[13px] font-semibold">
+                <div className="study-browser__thumbnail-preview-media bg-background text-foreground flex h-[130px] w-[136px] items-center justify-center rounded text-[13px] font-semibold">
                   PDF
                 </div>
               </object>
@@ -119,11 +118,11 @@ const Thumbnail = ({
               <img
                 src={imageSrc}
                 alt={imageAltText}
-                className="study-browser__thumbnail-preview-media h-[142px] w-[160px] rounded object-contain"
+                className="study-browser__thumbnail-preview-media h-[130px] w-[136px] rounded object-contain"
                 crossOrigin="anonymous"
               />
             ) : (
-              <div className="study-browser__thumbnail-preview-media bg-background h-[142px] w-[160px] rounded"></div>
+              <div className="study-browser__thumbnail-preview-media bg-background h-[130px] w-[136px] rounded"></div>
             )}
 
             {/* bottom left */}
@@ -183,12 +182,12 @@ const Thumbnail = ({
             </div>
           </div>
         </div>
-        <div className="study-browser__thumbnail-details flex h-[54px] w-[160px] flex-col justify-start pt-px">
+        <div className="study-browser__thumbnail-details flex h-[30px] w-[136px] flex-col justify-start pt-px">
           <Tooltip>
             <TooltipContent>{description}</TooltipContent>
             <TooltipTrigger>
               <div
-                className="study-browser__thumbnail-description text-foreground min-h-[18px] w-[160px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4"
+                className="study-browser__thumbnail-description text-foreground min-h-[18px] w-[136px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4"
                 data-cy="series-description-label"
               >
                 {description}
@@ -308,8 +307,10 @@ const Thumbnail = ({
     <div
       className={classnames(
         className,
-        'study-browser__thumbnail bg-muted hover:bg-primary/30 group flex cursor-pointer select-none flex-col rounded outline-none',
-        viewPreset === 'thumbnails' && 'h-[204px] w-[168px]',
+        'study-browser__thumbnail hover:bg-primary/20 group flex cursor-pointer select-none flex-col rounded outline-none',
+        viewPreset === 'thumbnails' && 'h-[164px] w-[140px]',
+        viewPreset === 'list' && 'bg-muted',
+        isActive && 'ring-1 ring-primary',
         viewPreset === 'list' && 'h-[40px] w-full'
       )}
       id={`thumbnail-${displaySetInstanceUID}`}

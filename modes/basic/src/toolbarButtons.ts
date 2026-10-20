@@ -395,7 +395,7 @@ const toolbarButtons: Button[] = [
       commands: setToolActiveToolbar,
       evaluate: [
         'evaluate.cornerstoneTool',
-        'evaluate.viewportProjection.measurement',
+        'evaluate.viewportProjection.singlePlaneAction',
         {
           name: 'evaluate.viewport.supported',
           unsupportedViewportTypes: ['video'],
@@ -457,7 +457,7 @@ const toolbarButtons: Button[] = [
       commands: setToolActiveToolbar,
       evaluate: [
         'evaluate.cornerstoneTool',
-        'evaluate.viewportProjection.measurement',
+        'evaluate.viewportProjection.singlePlaneAction',
         {
           name: 'evaluate.viewport.supported',
           unsupportedViewportTypes: ['video'],

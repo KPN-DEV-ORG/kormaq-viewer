@@ -170,6 +170,29 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
         bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
       },
     ],
+    passive: [
+      { toolName: toolNames.Length },
+      { toolName: toolNames.Bidirectional },
+      {
+        toolName: toolNames.ArrowAnnotate,
+        configuration: {
+          getTextCallback: (callback, eventDetails) => {
+            commandsManager.runCommand('arrowTextCallback', {
+              callback,
+              eventDetails,
+            });
+          },
+          changeTextCallback: (data, eventDetails, callback) => {
+            commandsManager.runCommand('arrowTextCallback', {
+              callback,
+              data,
+              eventDetails,
+            });
+          },
+        },
+      },
+      { toolName: toolNames.EllipticalROI },
+    ],
   };
 
   toolGroupService.createToolGroupAndAddTools(toolGroupIds.MIP, mipTools);

@@ -29,12 +29,12 @@ const ThumbnailList = ({
     <div className="study-browser__thumbnail-list flex flex-col">
       <div
         ref={ref}
-        className="study-browser__thumbnail-list-inner flex flex-col gap-[2px] pt-[4px] pr-[2.5px] pl-[5px] pb-[4px]"
+        className="study-browser__thumbnail-list-inner flex flex-col gap-[2px] p-[2px]"
       >
         {thumbnailItems.length > 0 && (
           <div
             id="ohif-thumbnail-list"
-            className="study-browser__thumbnail-grid bg-muted grid grid-cols-1 place-items-start gap-[4px]"
+            className="study-browser__thumbnail-grid grid grid-cols-1 place-items-start gap-[2px]"
           >
             {thumbnailItems.map(item => {
               const { displaySetInstanceUID, componentType, numInstances, ...rest } = item;

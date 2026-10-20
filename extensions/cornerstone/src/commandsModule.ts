@@ -67,6 +67,10 @@ import {
   projectionModeToBlendMode,
   resolveProjectionSlabThickness,
 } from './utils/projectionUtils';
+import {
+  getWindowLevelPresets,
+  getWindowLevelPresetsForDisplaySet,
+} from './utils/windowLevelPresets';
 
 const { add, intersect, subtract, copy } = cstUtils.contourSegmentation;
 
@@ -1247,29 +1251,38 @@ function commandsModule({
       actions.setViewportWindowLevel({ ...props, viewportId });
     },
     setWindowLevelPreset: ({ presetName, presetIndex }) => {
-      const windowLevelPresets = customizationService.getCustomization(
-        'cornerstone.windowLevelPresets'
+      const windowLevelPresets = getWindowLevelPresets(
+        customizationService.getCustomization('cornerstone.windowLevelPresets')
       );
 
       const activeViewport = viewportGridService.getActiveViewportId();
       const viewport = cornerstoneViewportService.getCornerstoneViewport(activeViewport);
-      const metadata = viewport.getImageData().metadata;
+      const metadata = viewport?.getImageData()?.metadata;
 
-      const modality = metadata.Modality;
+      const modality = metadata?.Modality;
 
       if (!modality) {
         return;
       }
 
-      const windowLevelPresetForModality = windowLevelPresets[modality];
+      const windowLevelPresetForModality = getWindowLevelPresetsForDisplaySet(
+        windowLevelPresets,
+        modality,
+        metadata?.SeriesInstanceUID
+      );
 
-      if (!windowLevelPresetForModality) {
+      if (!windowLevelPresetForModality.length) {
         return;
       }
 
       const windowLevelPreset =
-        windowLevelPresetForModality[presetName] ??
-        Object.values(windowLevelPresetForModality)[presetIndex];
+        windowLevelPresetForModality.find(
+          preset => preset.id === presetName || preset.description === presetName
+        ) ?? windowLevelPresetForModality[presetIndex];
+
+      if (!windowLevelPreset) {
+        return;
+      }
 
       actions.setViewportWindowLevel({
         viewportId: activeViewport,

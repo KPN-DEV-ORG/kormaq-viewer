@@ -645,6 +645,15 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
     },
     {
       name: 'evaluate.viewportProjection.measurement',
+      // Measurements are drawn on the active viewport's plane, including MIP/MPR views.
+      evaluate: ({ viewportId }) => {
+        return {
+          disabled: !cornerstoneViewportService.getCornerstoneViewport(viewportId),
+        };
+      },
+    },
+    {
+      name: 'evaluate.viewportProjection.singlePlaneAction',
       evaluate: ({
         viewportId,
         disabledText = 'Tools that depend on a single source plane are disabled in projection views',

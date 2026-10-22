@@ -341,7 +341,7 @@ function initVolume3DToolGroup(extensionManager, toolGroupService) {
       },
       {
         toolName: toolNames.Zoom,
-        bindings: noDefaultBindings,
+        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
       },
       {
         toolName: toolNames.Pan,

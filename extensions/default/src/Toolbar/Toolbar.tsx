@@ -16,6 +16,9 @@ interface ToolbarProps {
    */
   buttonSection?: string;
 
+  /** Optional caption for a group of related toolbar controls. */
+  label?: string;
+
   /**
    * The unique identifier of the viewport this toolbar is associated with.
    */
@@ -28,11 +31,7 @@ interface ToolbarProps {
   location?: number;
 }
 
-export function Toolbar({
-  buttonSection = 'primary',
-  viewportId,
-  location,
-}: ToolbarProps) {
+export function Toolbar({ buttonSection = 'primary', label, viewportId, location }: ToolbarProps) {
   const {
     toolbarButtons,
     onInteraction,
@@ -49,7 +48,7 @@ export function Toolbar({
     return null;
   }
 
-  return (
+  const buttons = (
     <>
       {toolbarButtons?.map(toolDef => {
         if (!toolDef) {
@@ -100,5 +99,23 @@ export function Toolbar({
         );
       })}
     </>
+  );
+
+  if (!label) {
+    return buttons;
+  }
+
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      data-cy={`toolbar-group-${buttonSection}`}
+      className="border-border flex shrink-0 flex-col items-center border-r px-1"
+    >
+      <div className="flex h-8 items-center gap-0.5 [&_button]:h-8">{buttons}</div>
+      <span className="text-muted-foreground select-none whitespace-nowrap text-[10px] font-medium uppercase leading-3 tracking-wide">
+        {label}
+      </span>
+    </div>
   );
 }

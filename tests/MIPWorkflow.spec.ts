@@ -214,8 +214,6 @@ test.describe('MIP workflow', () => {
 
     expect(lengthState.ariaDisabled === 'true' || lengthState.dataDisabled === '').toBeTruthy();
 
-    await page.getByTestId('MoreTools-split-button-secondary').click();
-
     const angleState = await page.getByTestId('Angle').evaluate(element => ({
       ariaDisabled: element.getAttribute('aria-disabled'),
       dataDisabled: element.getAttribute('data-disabled'),

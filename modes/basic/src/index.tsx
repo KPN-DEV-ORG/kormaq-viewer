@@ -212,18 +212,40 @@ export function onModeExit({ servicesManager }: withAppTypes) {
 
 export const toolbarSections = {
   [TOOLBAR_SECTIONS.primary]: [
-    'MeasurementTools',
-    'Zoom',
-    'Pan',
-    'TrackballRotate',
+    'NavigationTools',
+    'ImageToolsGroup',
+    'MeasurementToolsGroup',
+    'ReconstructionTools',
+    'ComparisonTools',
+    'ExportTools',
+  ],
+
+  NavigationTools: ['Zoom', 'Pan', 'StackScroll', 'Cine'],
+
+  ImageToolsGroup: [
+    'WindowLevel',
     'windowLevelMenuEmbedded',
-    'Capture',
-    'Layout',
-    'ProjectionMIP',
+    'Reset',
+    'rotate-right',
+    'flipHorizontal',
+    'invert',
+    'ImageTools',
+  ],
+
+  MeasurementToolsGroup: ['MeasurementTools', 'Probe'],
+
+  ReconstructionTools: [
     'MPRLayout',
+    'ProjectionMIP',
     'Crosshairs',
+    'Volume3D',
+    'TrackballRotate',
     'MoreTools',
   ],
+
+  ComparisonTools: ['Layout', 'ImageSliceSync', 'ReferenceLines'],
+
+  ExportTools: ['Capture'],
 
   [TOOLBAR_SECTIONS.viewportActionMenu.topLeft]: ['orientationMenu', 'dataOverlayMenu'],
 
@@ -248,6 +270,8 @@ export const toolbarSections = {
   MeasurementTools: [
     'Length',
     'Bidirectional',
+    'Angle',
+    'CobbAngle',
     'ArrowAnnotate',
     'EllipticalROI',
     'RectangleROI',
@@ -255,33 +279,20 @@ export const toolbarSections = {
     'PlanarFreehandROI',
     'SplineROI',
     'LivewireContour',
+    'CalibrationLine',
+    'UltrasoundDirectionalTool',
   ],
 
-  MoreTools: [
-    'Reset',
-    'rotate-right',
-    'flipHorizontal',
-    'CTAThinMIPPreset',
-    'CTAThickMIPPreset',
-    'MRAThinMIPPreset',
-    'PETFullMIPPreset',
-    'ImageSliceSync',
-    'ReferenceLines',
-    'ImageOverlayViewer',
-    'StackScroll',
-    'invert',
-    'Probe',
-    'Cine',
-    'Angle',
-    'CobbAngle',
+  ImageTools: [
     'Magnify',
-    'CalibrationLine',
-    'TagBrowser',
     'AdvancedMagnify',
-    'UltrasoundDirectionalTool',
     'WindowLevelRegion',
+    'ImageOverlayViewer',
     'SegmentLabelTool',
+    'TagBrowser',
   ],
+
+  MoreTools: ['CTAThinMIPPreset', 'CTAThickMIPPreset', 'MRAThinMIPPreset', 'PETFullMIPPreset'],
 };
 
 export const basicLayout = {
@@ -289,7 +300,12 @@ export const basicLayout = {
   props: {
     leftPanels: [ohif.thumbnailList],
     leftPanelResizable: true,
-    rightPanels: [cornerstone.segmentation, cornerstone.measurements, ohif.studyReports, ohif.studyTools],
+    rightPanels: [
+      cornerstone.segmentation,
+      cornerstone.measurements,
+      ohif.studyReports,
+      ohif.studyTools,
+    ],
     rightPanelsOnToolbar: true,
     rightPanelClosed: true,
     rightPanelResizable: true,

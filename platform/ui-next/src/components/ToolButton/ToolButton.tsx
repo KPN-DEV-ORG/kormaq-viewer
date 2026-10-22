@@ -6,10 +6,10 @@ import { cn } from '../../lib/utils';
 import { useIconPresentation } from '../../contextProviders/IconPresentationProvider';
 
 const baseClasses = '!rounded-lg inline-flex items-center justify-center';
-const defaultClasses = 'bg-transparent text-foreground hover:bg-muted hover:text-highlight transition-colors duration-200';
+const defaultClasses =
+  'bg-transparent text-foreground hover:bg-muted hover:text-highlight transition-colors duration-200';
 const activeClasses = 'bg-highlight text-background hover:!bg-highlight/80';
-const disabledClasses =
-  'text-muted-foreground opacity-40 cursor-not-allowed';
+const disabledClasses = 'text-muted-foreground opacity-40 cursor-not-allowed';
 
 const sizeClasses = {
   default: {
@@ -39,6 +39,7 @@ interface ToolButtonProps {
   onInteraction?: (details: { itemId: string; commands?: Record<string, unknown> }) => void;
   className?: string;
   children?: React.ReactNode;
+  badge?: string;
 }
 
 function ToolButton(props: ToolButtonProps) {
@@ -55,6 +56,7 @@ function ToolButton(props: ToolButtonProps) {
     onInteraction,
     className,
     children,
+    badge,
   } = props;
 
   const { className: iconClassName } = useIconPresentation();
@@ -87,7 +89,7 @@ function ToolButton(props: ToolButtonProps) {
           data-active={isActive}
         >
           <Button
-            className={buttonClasses}
+            className={cn(buttonClasses, badge && 'relative')}
             onClick={() => {
               if (!disabled) {
                 onInteraction?.({ itemId: id, commands });
@@ -104,6 +106,11 @@ function ToolButton(props: ToolButtonProps) {
                 name={icon}
                 className={iconClassName || iconSizeClass}
               />
+            )}
+            {badge && (
+              <span className="bg-background text-foreground absolute -right-0.5 -top-0.5 rounded px-0.5 text-[9px] font-semibold leading-3">
+                {badge}
+              </span>
             )}
           </Button>
         </span>

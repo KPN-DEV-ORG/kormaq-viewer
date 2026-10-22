@@ -22,6 +22,28 @@ export const setToolActiveToolbar = {
 
 const toolbarButtons: Button[] = [
   // sections
+  ...[
+    ['NavigationTools', i18n.t('Buttons:Navigate')],
+    ['ImageToolsGroup', i18n.t('Buttons:Image')],
+    ['MeasurementToolsGroup', i18n.t('Buttons:Measure')],
+    ['ReconstructionTools', i18n.t('Buttons:Reconstruct')],
+    ['ComparisonTools', i18n.t('Buttons:Compare')],
+    ['ExportTools', i18n.t('Buttons:Export')],
+  ].map(([id, label]) => ({
+    id,
+    uiType: 'ohif.Toolbar',
+    props: {
+      buttonSection: true,
+      label,
+    },
+  })),
+  {
+    id: 'ImageTools',
+    uiType: 'ohif.toolButtonList',
+    props: {
+      buttonSection: true,
+    },
+  },
   {
     id: 'MeasurementTools',
     uiType: 'ohif.toolButtonList',
@@ -323,10 +345,10 @@ const toolbarButtons: Button[] = [
     uiType: 'ohif.toolButton',
     props: {
       icon: 'tool-probe',
-      label: i18n.t('Buttons:Probe'),
-      tooltip: i18n.t('Buttons:Probe'),
+      label: i18n.t('Buttons:Pixel intensity'),
+      tooltip: i18n.t('Buttons:Pixel value probe help'),
       commands: setToolActiveToolbar,
-      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.pixelValue'],
     },
   },
   {
@@ -601,6 +623,24 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Zoom'),
       commands: setToolActiveToolbar,
       evaluate: 'evaluate.cornerstoneTool',
+    },
+  },
+  {
+    id: 'Volume3D',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'layout-advanced-3d-only',
+      label: i18n.t('Buttons:3D Mode'),
+      tooltip: i18n.t('Buttons:Open 3D mode. Drag to rotate; scroll to zoom.'),
+      commands: {
+        commandName: 'setHangingProtocol',
+        commandOptions: {
+          protocolId: 'only3D',
+        },
+      },
+      evaluate: {
+        name: 'evaluate.displaySetIsReconstructable',
+      },
     },
   },
   {

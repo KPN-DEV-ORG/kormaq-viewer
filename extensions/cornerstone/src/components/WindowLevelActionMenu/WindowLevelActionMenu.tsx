@@ -9,6 +9,7 @@ import { VolumeRenderingOptions } from './VolumeRenderingOptions';
 import ProjectionMenu, { useShouldHideProjectionControls } from './ProjectionMenu';
 import { useViewportRendering } from '../../hooks/useViewportRendering';
 import i18n from 'i18next';
+import { HounsfieldProbe } from './HounsfieldProbe';
 
 export type WindowLevelActionMenuProps = {
   viewportId: string;
@@ -71,6 +72,12 @@ export function WindowLevelActionMenuContent({
       onVisibilityChange={onVisibilityChange}
     >
       <AllInOneMenu.ItemPanel>
+        {!is3DVolume && (
+          <HounsfieldProbe
+            viewportId={viewportId}
+            onClose={onVisibilityChange}
+          />
+        )}
         {!is3DVolume && <Colorbar viewportId={viewportId} />}
 
         {colorbarProperties?.colormaps && !is3DVolume && (

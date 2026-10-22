@@ -101,7 +101,7 @@ function Local({ modePath }: LocalProps) {
     }
     if (!studies.length) {
       throw new Error(
-        'No readable DICOM studies found. Select the disc’s root folder, including its subfolders. DICOMDIR alone does not contain the study images.'
+        'No readable DICOM studies found. Select DICOM image files or a folder containing them.'
       );
     }
 
@@ -185,8 +185,8 @@ function Local({ modePath }: LocalProps) {
                 variant="ghost"
                 size="icon"
                 className="absolute right-3 top-3"
-                aria-label="Close disc loader"
-                title="Close disc loader"
+                aria-label="Close local loader"
+                title="Close local loader"
                 onClick={closeLoader}
               >
                 <Icons.Close aria-hidden="true" />
@@ -218,7 +218,6 @@ function Local({ modePath }: LocalProps) {
                 </p>
               )}
               <div className="flex flex-wrap justify-center gap-2 pt-4">
-                {getLoadButton(onDrop, 'Open CD/DVD', true, dropInitiated)}
                 {getLoadButton(onDrop, 'Load files', false, dropInitiated)}
                 {getLoadButton(onDrop, 'Load folders', true, dropInitiated)}
                 <Button
@@ -228,10 +227,6 @@ function Local({ modePath }: LocalProps) {
                   {dropInitiated ? 'Cancel loading' : 'Cancel'}
                 </Button>
               </div>
-              <p className="text-muted-foreground max-w-xl pt-2 text-center text-sm">
-                For CD/DVD studies, insert the disc and select its root folder in the folder picker.
-                All subfolders are included. Keep the disc inserted while viewing.
-              </p>
             </div>
           </div>
         </div>

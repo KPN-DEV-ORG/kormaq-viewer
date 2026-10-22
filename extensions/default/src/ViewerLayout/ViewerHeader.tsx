@@ -2,11 +2,10 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { Button, Header, Icons, ThemeSelector, useModal } from '@ohif/ui-next';
+import { Header, Icons } from '@ohif/ui-next';
 import { useSystem } from '@ohif/core';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { preserveQueryParameters } from '@ohif/app';
-import { Types } from '@ohif/core';
 import ToolbarPanelButtons from './ToolbarPanelButtons';
 
 function ViewerHeader({
@@ -21,7 +20,7 @@ function ViewerHeader({
   onToolbarPanelSelect?: (panel) => void;
 }>) {
   const { servicesManager, extensionManager } = useSystem();
-  const { customizationService, panelService } = servicesManager.services;
+  const { panelService } = servicesManager.services;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,49 +45,6 @@ function ViewerHeader({
   };
 
   const { t } = useTranslation();
-  const { show } = useModal();
-
-  const AboutModal = customizationService.getCustomization(
-    'ohif.aboutModal'
-  ) as Types.MenuComponentCustomization;
-
-  const UserPreferencesModal = customizationService.getCustomization(
-    'ohif.userPreferencesModal'
-  ) as Types.MenuComponentCustomization;
-
-  const menuOptions = [
-    {
-      title: AboutModal?.menuTitle ?? t('Header:About'),
-      icon: 'info',
-      onClick: () =>
-        show({
-          content: AboutModal,
-          title: AboutModal?.title ?? t('AboutModal:About OHIF Viewer'),
-          containerClassName: AboutModal?.containerClassName ?? 'max-w-md',
-        }),
-    },
-    {
-      title: UserPreferencesModal.menuTitle ?? t('Header:Preferences'),
-      icon: 'settings',
-      onClick: () =>
-        show({
-          content: UserPreferencesModal,
-          title: UserPreferencesModal.title ?? t('UserPreferencesModal:User preferences'),
-          containerClassName:
-            UserPreferencesModal?.containerClassName ?? 'flex max-w-4xl p-6 flex-col',
-        }),
-    },
-  ];
-
-  if (appConfig.oidc) {
-    menuOptions.push({
-      title: t('Header:Logout'),
-      icon: 'power-off',
-      onClick: async () => {
-        navigate(`/logout?redirect_uri=${encodeURIComponent(window.location.href)}`);
-      },
-    });
-  }
 
   const showMobileStudyReports = () => {
     const reportsPanel = panelService
@@ -102,14 +58,14 @@ function ViewerHeader({
 
   return (
     <Header
-      menuOptions={menuOptions}
+      menuOptions={[]}
+      showSettings={false}
       isReturnEnabled={!!appConfig.showStudyList}
       onClickReturnButton={onClickReturnButton}
       WhiteLabeling={appConfig.whiteLabeling}
-      Branding={<ThemeSelector />}
       Secondary={<Toolbar buttonSection="secondary" />}
     >
-      <div className="relative flex items-center justify-center gap-[4px]">
+      <div className="relative flex w-max shrink-0 items-center gap-1 md:gap-2">
         {rightPanelsOnToolbar && onToolbarPanelSelect && (
           <button
             type="button"
@@ -122,7 +78,9 @@ function ViewerHeader({
             <span>{t('SidePanel:Reports', 'Reports')}</span>
           </button>
         )}
-        <Toolbar buttonSection="primary" />
+        <div className="flex min-w-max shrink-0 items-center gap-0.5 md:gap-1">
+          <Toolbar buttonSection="primary" />
+        </div>
         {rightPanelsOnToolbar && onToolbarPanelSelect && (
           <ToolbarPanelButtons
             servicesManager={servicesManager}
@@ -130,25 +88,6 @@ function ViewerHeader({
             onPanelSelect={onToolbarPanelSelect}
           />
         )}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-primary hover:bg-primary/25 ml-2 h-8 w-8 shrink-0"
-          title={t('StudyList:Open CD/DVD', 'Open CD/DVD')}
-          aria-label={t('StudyList:Open CD/DVD', 'Open CD/DVD')}
-          data-cy="open-cd-dvd"
-          onClick={() =>
-            navigate('/local', {
-              state: { returnTo: location.pathname + location.search + location.hash },
-            })
-          }
-        >
-          <Icons.Disc
-            className="h-8 w-8"
-            aria-hidden="true"
-          />
-        </Button>
       </div>
     </Header>
   );

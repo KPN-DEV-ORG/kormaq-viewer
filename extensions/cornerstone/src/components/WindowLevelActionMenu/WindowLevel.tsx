@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ReactElement, useEffect, useId, useMemo, useState } from 'react';
 import {
   AllInOneMenu,
   Button,
@@ -13,6 +13,7 @@ import { WindowLevelPreset } from '../../types/WindowLevel';
 import { useTranslation } from 'react-i18next';
 import { resetWindowLevelPresets, saveWindowLevelPresets } from '../../utils/windowLevelPresets';
 import WindowLevelPresetEditor from './WindowLevelPresetEditor';
+import { useViewportPreview } from '../../hooks/useViewportPreview';
 
 function formatIntensity(value: number): string {
   return String(Number(value.toPrecision(6)));
@@ -68,11 +69,7 @@ function getMRPresets(
   }
 
   const sourceCenter = (range.upper + range.lower) / 2;
-  const metadataText = [
-    metadata?.SeriesDescription,
-    metadata?.ProtocolName,
-    metadata?.ImageType,
-  ]
+  const metadataText = [metadata?.SeriesDescription, metadata?.ProtocolName, metadata?.ImageType]
     .flatMap(value => (Array.isArray(value) ? value : [value]))
     .filter((value): value is string => typeof value === 'string')
     .join(' ')
@@ -158,19 +155,19 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
   );
   const activeUID = activeDisplaySetUID || viewportDisplaySets?.[0]?.displaySetInstanceUID;
 
-  const {
-    windowLevelPresets,
-    setWindowLevel,
-    initialVOIRange,
-  } = useViewportRendering(viewportId, {
-    displaySetInstanceUID: activeUID,
-  });
+  const { windowLevelPresets, setWindowLevel, initialVOIRange, windowLevel } = useViewportRendering(
+    viewportId,
+    {
+      displaySetInstanceUID: activeUID,
+    }
+  );
 
   const activeDisplaySet = viewportDisplaySets?.find(
     displaySet => displaySet.displaySetInstanceUID === activeUID
   );
   const modality = activeDisplaySet?.Modality || '';
-  const mrRange = initialVOIRange?.displaySetInstanceUID === activeUID ? initialVOIRange : undefined;
+  const mrRange =
+    initialVOIRange?.displaySetInstanceUID === activeUID ? initialVOIRange : undefined;
   const mrRangeLower = mrRange?.lower;
   const mrRangeUpper = mrRange?.upper;
   const seriesDescription = activeDisplaySet?.SeriesDescription;
@@ -190,14 +187,7 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
             }
           )
         : [],
-    [
-      modality,
-      mrRangeLower,
-      mrRangeUpper,
-      seriesDescription,
-      protocolName,
-      imageType,
-    ]
+    [modality, mrRangeLower, mrRangeUpper, seriesDescription, protocolName, imageType]
   );
   const presets = windowLevelPresets.length
     ? windowLevelPresets
@@ -205,17 +195,15 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
       ? mrPresets
       : windowLevelPresets;
 
-  const [showPreview, setShowPreview] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [prePreviewPreset, setPrePreviewPreset] = useState<WindowLevelPreset | null>(null);
-  const [currentPreset, setCurrentPreset] = useState<WindowLevelPreset | null>(null);
-
-  const showPreviewRef = useRef(showPreview);
-  showPreviewRef.current = showPreview;
-  const prePreviewPresetRef = useRef(prePreviewPreset);
-  prePreviewPresetRef.current = prePreviewPreset;
-  const currentPresetRef = useRef(currentPreset);
-  currentPresetRef.current = currentPreset;
+  const previewId = useId();
+  const { showPreview, setShowPreview, preview, commit, restorePreview } = useViewportPreview(
+    `${viewportId}:${activeUID}`,
+    Number.isFinite(windowLevel?.windowWidth) && Number.isFinite(windowLevel?.windowCenter)
+      ? windowLevel
+      : undefined,
+    value => setWindowLevel({ ...value, immediate: true })
+  );
 
   useEffect(() => {
     if (!viewportDisplaySets?.length) {
@@ -229,20 +217,6 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
     );
   }, [viewportDisplaySets]);
 
-  // Reset transient preview state when switching between series.
-  useEffect(() => {
-    setCurrentPreset(null);
-    setPrePreviewPreset(null);
-  }, [activeUID]);
-
-  const handleSetWindowLevel = (preset: WindowLevelPreset, immediate = false) => {
-    setWindowLevel({
-      windowWidth: Number(preset.window),
-      windowCenter: Number(preset.level),
-      immediate,
-    });
-  };
-
   return (
     <>
       {viewportDisplaySets && viewportDisplaySets.length > 1 && (
@@ -253,7 +227,10 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
           >
             <TabsList>
               {viewportDisplaySets.map(ds => (
-                <TabsTrigger key={ds.displaySetInstanceUID} value={ds.displaySetInstanceUID}>
+                <TabsTrigger
+                  key={ds.displaySetInstanceUID}
+                  value={ds.displaySetInstanceUID}
+                >
                   {ds.Modality}
                 </TabsTrigger>
               ))}
@@ -262,23 +239,18 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
         </div>
       )}
 
-      <div
+      <label
+        htmlFor={previewId}
         className="hover:bg-accent flex h-8 w-full flex-shrink-0 cursor-pointer items-center px-2 text-base hover:rounded"
-        onClick={() => setShowPreview(!showPreview)}
       >
         <span className="flex-shrink-0">{t('Preview in viewport')}</span>
         <Switch
+          id={previewId}
           className="ml-auto flex-shrink-0"
           checked={showPreview}
-          onCheckedChange={checked => {
-            setShowPreview(checked);
-
-            if (!checked && currentPresetRef.current) {
-              handleSetWindowLevel(currentPresetRef.current, true);
-            }
-          }}
+          onCheckedChange={setShowPreview}
         />
-      </div>
+      </label>
 
       <AllInOneMenu.DividerItem />
 
@@ -302,23 +274,18 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
                   description={preset.details}
                   useIconSpace={false}
                   onClick={() => {
-                    setCurrentPreset(preset);
-                    handleSetWindowLevel(preset, true);
-                    setPrePreviewPreset(null);
+                    commit({
+                      windowWidth: Number(preset.window),
+                      windowCenter: Number(preset.level),
+                    });
                   }}
                   onMouseEnter={() => {
-                    if (showPreviewRef.current) {
-                      if (!prePreviewPresetRef.current) {
-                        setPrePreviewPreset(currentPresetRef.current || preset);
-                      }
-                      handleSetWindowLevel(preset, true);
-                    }
+                    preview({
+                      windowWidth: Number(preset.window),
+                      windowCenter: Number(preset.level),
+                    });
                   }}
-                  onMouseLeave={() => {
-                    if (showPreviewRef.current && prePreviewPresetRef.current) {
-                      handleSetWindowLevel(prePreviewPresetRef.current, true);
-                    }
-                  }}
+                  onMouseLeave={restorePreview}
                 />
               ))}
               {modality === 'MR' && !presets.length && (
@@ -354,9 +321,7 @@ export function WindowLevel({ viewportId }: { viewportId?: string } = {}): React
         onSave={nextPresets =>
           saveWindowLevelPresets(modality, nextPresets, activeDisplaySet?.SeriesInstanceUID)
         }
-        onReset={() =>
-          resetWindowLevelPresets(modality, activeDisplaySet?.SeriesInstanceUID)
-        }
+        onReset={() => resetWindowLevelPresets(modality, activeDisplaySet?.SeriesInstanceUID)}
       />
     </>
   );

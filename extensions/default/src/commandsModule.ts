@@ -641,6 +641,7 @@ const commandsModule = ({
           commandsManager.run('setToolActiveToolbar', {
             toolName: 'Crosshairs',
             toolGroupIds: ['mpr'],
+            toggle: false,
           });
         }
 

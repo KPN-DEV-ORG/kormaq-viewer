@@ -62,6 +62,16 @@ export default {
   ],
   'viewportOverlay.topRight': [
     {
+      id: 'ProjectionMode',
+      inheritsFrom: 'ohif.overlayItem',
+      label: '',
+      title: 'Projection mode',
+      condition: ({ viewportId, servicesManager }) =>
+        !!getProjectionModeLabel(viewportId, servicesManager),
+      contentF: ({ viewportId, servicesManager }) =>
+        getProjectionModeLabel(viewportId, servicesManager),
+    },
+    {
       id: 'PatientName',
       inheritsFrom: 'ohif.overlayItem',
       className: 'patient-info-overlay',
@@ -94,20 +104,14 @@ export default {
       className: 'patient-info-overlay',
       label: 'Institution:',
       title: 'Institution',
-      condition: ({ referenceInstance, displaySet }) =>
-        referenceInstance?.InstitutionName || displaySet?.InstitutionName,
-      contentF: ({ referenceInstance, displaySet }) =>
-        referenceInstance?.InstitutionName || displaySet?.InstitutionName,
-    },
-    {
-      id: 'ProjectionMode',
-      inheritsFrom: 'ohif.overlayItem',
-      label: '',
-      title: 'Projection mode',
-      condition: ({ viewportId, servicesManager }) =>
-        !!getProjectionModeLabel(viewportId, servicesManager),
-      contentF: ({ viewportId, servicesManager }) =>
-        getProjectionModeLabel(viewportId, servicesManager),
+      condition: ({ instance, referenceInstance, displaySet }) =>
+        instance?.InstitutionName ||
+        referenceInstance?.InstitutionName ||
+        displaySet?.InstitutionName,
+      contentF: ({ instance, referenceInstance, displaySet }) =>
+        instance?.InstitutionName ||
+        referenceInstance?.InstitutionName ||
+        displaySet?.InstitutionName,
     },
   ],
   'viewportOverlay.bottomLeft': [

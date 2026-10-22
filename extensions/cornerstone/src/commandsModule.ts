@@ -71,6 +71,7 @@ import {
   getWindowLevelPresets,
   getWindowLevelPresetsForDisplaySet,
 } from './utils/windowLevelPresets';
+import releaseTool from './utils/releaseTool';
 
 const { add, intersect, subtract, copy } = cstUtils.contourSegmentation;
 
@@ -124,21 +125,6 @@ const passivateOrDisableTool = (toolGroup, toolName) => {
   toolOptions?.disableOnPassive
     ? toolGroup.setToolDisabled(toolName)
     : toolGroup.setToolPassive(toolName);
-};
-
-const getFallbackPrimaryToolName = (toolGroup, currentToolName) => {
-  const previousToolName = toolGroup.getPrevActivePrimaryToolName?.();
-  const fallbackCandidates =
-    currentToolName === toolNames.TrackballRotateTool
-      ? [previousToolName, toolNames.WindowLevel]
-      : [previousToolName, toolNames.TrackballRotateTool, toolNames.WindowLevel];
-
-  return fallbackCandidates.find(
-    fallbackToolName =>
-      fallbackToolName &&
-      fallbackToolName !== currentToolName &&
-      toolGroup.hasTool(fallbackToolName)
-  );
 };
 
 const { segmentation: segmentationUtils } = cstUtils;
@@ -221,8 +207,7 @@ function commandsModule({
   }
 
   function _getActiveViewportToolGroupId() {
-    const viewport = _getActiveViewportEnabledElement();
-    return toolGroupService.getToolGroupForViewport(viewport.id);
+    return toolGroupService.getToolGroupForViewport(viewportGridService.getActiveViewportId())?.id;
   }
 
   function _getProjectionViewportContext(viewportId?: string, displaySetInstanceUID?: string) {
@@ -1351,34 +1336,55 @@ function commandsModule({
         Enums.ToolModes.Passive,
       ].includes(toolGroup.getToolOptions(toolName).mode);
 
-      toolIsActive
-        ? toolGroup.setToolDisabled(toolName)
-        : actions.setToolActive({ toolName, toolGroupId });
-
-      // we should set the previously active tool to active after we set the
-      // current tool disabled
       if (toolIsActive) {
-        const prevToolName = toolGroup.getPrevActivePrimaryToolName();
-        if (prevToolName !== toolName) {
-          actions.setToolActive({ toolName: prevToolName, toolGroupId });
-        }
+        releaseTool(toolGroup, toolName, viewportGridService.getActiveViewportId());
+        toolGroup.setToolDisabled(toolName);
+      } else {
+        actions.setToolActive({ toolName, toolGroupId });
       }
     },
-    setToolActiveToolbar: ({ value, itemId, toolName, toolGroupIds = [], bindings, toggle }) => {
+    setToolActiveToolbar: ({
+      value,
+      itemId,
+      toolName,
+      toolGroupIds = [],
+      bindings,
+      viewportId,
+      toggle = true,
+    }) => {
       // Sometimes it is passed as value (tools with options), sometimes as itemId (toolbar buttons)
       toolName = toolName || itemId || value;
 
       toolGroupIds = toolGroupIds.length ? toolGroupIds : toolGroupService.getToolGroupIds();
 
+      const activeToolGroup = toolGroupService.getToolGroupForViewport(
+        viewportId ?? viewportGridService.getActiveViewportId()
+      );
+      // Decide once from the clicked viewport so linked groups stay in sync.
+      const shouldRelease =
+        toggle && activeToolGroup?.getActivePrimaryMouseButtonTool() === toolName;
+
       toolGroupIds.forEach(toolGroupId => {
-        actions.setToolActive({ toolName, toolGroupId, bindings, toggle });
+        if (shouldRelease) {
+          const toolGroup = toolGroupService.getToolGroup(toolGroupId);
+          if (toolGroup?.getActivePrimaryMouseButtonTool() === toolName) {
+            releaseTool(
+              toolGroup,
+              toolName,
+              viewportId ?? viewportGridService.getActiveViewportId()
+            );
+          }
+        } else {
+          actions.setToolActive({ toolName, toolGroupId, bindings, viewportId, toggle: false });
+        }
       });
     },
     setToolActive: ({
       toolName,
       toolGroupId = null,
       bindings = [{ mouseButton: Enums.MouseBindings.Primary }],
-      toggle,
+      toggle = false,
+      viewportId,
     }) => {
       const { viewports } = viewportGridService.getState();
 
@@ -1404,26 +1410,21 @@ function commandsModule({
       }
 
       const activeToolName = toolGroup.getActivePrimaryMouseButtonTool();
-      const shouldToggle = toggle ?? disabledMouseTransformTools.has(toolName);
-
-      if (shouldToggle && activeToolName === toolName) {
-        const fallbackToolName = getFallbackPrimaryToolName(toolGroup, activeToolName);
-
-        passivateOrDisableTool(toolGroup, activeToolName);
-
-        if (fallbackToolName) {
-          actions.setToolActive({
-            toolName: fallbackToolName,
-            toolGroupId: toolGroup.id,
-            toggle: false,
-          });
-        }
-
+      if (toggle && activeToolName === toolName) {
+        releaseTool(
+          toolGroup,
+          activeToolName,
+          viewportId ?? viewportGridService.getActiveViewportId()
+        );
         return;
       }
 
       if (activeToolName && activeToolName !== toolName) {
-        passivateOrDisableTool(toolGroup, activeToolName);
+        releaseTool(
+          toolGroup,
+          activeToolName,
+          viewportId ?? viewportGridService.getActiveViewportId()
+        );
       }
       // Set the new toolName to be active
       toolGroup.setToolActive(toolName, {
@@ -2612,6 +2613,7 @@ function commandsModule({
         actions.setToolActiveToolbar({
           toolName: 'CircularBrushForAutoSegmentAI',
           toolGroupIds: toolGroupIds,
+          toggle: false,
         });
       } else {
         toolGroupIds.forEach(toolGroupId => {

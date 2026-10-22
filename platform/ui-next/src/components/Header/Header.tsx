@@ -21,6 +21,7 @@ interface HeaderProps {
     icon?: string;
     onClick: () => void;
   }>;
+  showSettings?: boolean;
   isReturnEnabled?: boolean;
   onClickReturnButton?: () => void;
   isSticky?: boolean;
@@ -36,6 +37,7 @@ interface HeaderProps {
 function Header({
   children,
   menuOptions,
+  showSettings = true,
   isReturnEnabled = true,
   onClickReturnButton,
   isSticky = false,
@@ -68,10 +70,10 @@ function Header({
         isSticky={isSticky}
         {...props}
       >
-        <div className="relative min-h-[88px] md:h-[48px] md:min-h-0">
+        <div className="relative min-h-[88px] md:flex md:h-[48px] md:min-h-0 md:items-center md:gap-2">
           <div className="flex h-10 items-center justify-between md:contents">
             {(hasReturnButton || hasBranding || hasSecondary) && (
-              <div className="flex items-center md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2">
+              <div className="flex items-center md:order-1 md:shrink-0">
                 {hasReturnButton && (
                   <button
                     type="button"
@@ -96,51 +98,55 @@ function Header({
                 )}
               </div>
             )}
-            <div className="flex select-none items-center md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2">
-              {UndoRedo}
-              {hasUndoRedo && hasPatientInfo && (
-                <div className="border-border mx-1.5 h-[25px] border-r"></div>
-              )}
-              {PatientInfo}
-              {hasPatientInfo && <div className="border-border mx-1.5 h-[25px] border-r"></div>}
-              <div className="flex-shrink-0">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-foreground hover:bg-primary/25 h-8 w-8"
-                    >
-                      <Icons.GearSettings />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {menuOptions.map((option, index) => {
-                      const IconComponent = option.icon
-                        ? Icons[option.icon as keyof typeof Icons]
-                        : null;
-                      return (
-                        <DropdownMenuItem
-                          key={index}
-                          onSelect={option.onClick}
-                          className="flex items-center gap-2 py-2"
+            {(hasUndoRedo || hasPatientInfo || showSettings) && (
+              <div className="flex select-none items-center md:order-3 md:shrink-0">
+                {UndoRedo}
+                {hasUndoRedo && hasPatientInfo && (
+                  <div className="border-border mx-1.5 h-[25px] border-r"></div>
+                )}
+                {PatientInfo}
+                {hasPatientInfo && <div className="border-border mx-1.5 h-[25px] border-r"></div>}
+                {showSettings && (
+                  <div className="flex-shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-foreground hover:bg-primary/25 h-8 w-8"
                         >
-                          {IconComponent && (
-                            <span className="flex h-4 w-4 items-center justify-center">
-                              <Icons.ByName name={option.icon} />
-                            </span>
-                          )}
-                          <span className="flex-1">{option.title}</span>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                          <Icons.GearSettings />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {menuOptions.map((option, index) => {
+                          const IconComponent = option.icon
+                            ? Icons[option.icon as keyof typeof Icons]
+                            : null;
+                          return (
+                            <DropdownMenuItem
+                              key={index}
+                              onSelect={option.onClick}
+                              className="flex items-center gap-2 py-2"
+                            >
+                              {IconComponent && (
+                                <span className="flex h-4 w-4 items-center justify-center">
+                                  <Icons.ByName name={option.icon} />
+                                </span>
+                              )}
+                              <span className="flex-1">{option.title}</span>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
-          <div className="w-full overflow-x-auto pb-1 md:absolute md:left-1/2 md:top-1/2 md:w-auto md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-visible md:pb-0">
-            <div className="flex min-w-max items-center justify-start gap-1 px-1 md:justify-center md:gap-2 md:px-0">
+          <div className="w-full overflow-x-auto pb-1 md:order-2 md:min-w-0 md:flex-1 md:pb-0">
+            <div className="flex w-full min-w-max items-center justify-start gap-1 px-1 md:justify-center md:gap-2 md:px-0">
               {children}
             </div>
           </div>

@@ -15,6 +15,7 @@ import TrackingStatus from './components/TrackingStatus/TrackingStatus';
 import ViewportColorbarsContainer from './components/ViewportColorbar';
 import AdvancedRenderingControls from './components/AdvancedRenderingControls';
 import { PROJECTION_MODES, blendModeToProjectionMode } from './utils/projectionUtils';
+import { getHounsfieldProbeState } from './utils/getHounsfieldProbeState';
 
 const getDisabledState = (disabledText?: string) => ({
   disabled: true,
@@ -459,6 +460,31 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
             );
           }
         }
+      },
+    },
+    {
+      name: 'evaluate.pixelValue',
+      evaluate: ({ viewportId }) => {
+        const displaySets = (
+          viewportGridService.getDisplaySetsUIDsForViewport(viewportId) || []
+        ).map(uid => displaySetService.getDisplaySetByUID(uid));
+        const { hasCT, enabled } = getHounsfieldProbeState(
+          cornerstoneViewportService.getCornerstoneViewport(viewportId),
+          toolGroupService.getToolGroupForViewport(viewportId),
+          displaySets
+        );
+        return {
+          badge: hasCT ? 'HU' : undefined,
+          label: hasCT
+            ? i18n.t('WindowLevelActionMenu:Hounsfield units (HU)')
+            : i18n.t('Buttons:Pixel intensity'),
+          tooltip: hasCT
+            ? i18n.t('WindowLevelActionMenu:HU probe help')
+            : i18n.t('Buttons:Pixel value probe help'),
+          disabled: hasCT && !enabled,
+          disabledText:
+            hasCT && !enabled ? i18n.t('WindowLevelActionMenu:HU probe unavailable') : undefined,
+        };
       },
     },
     {

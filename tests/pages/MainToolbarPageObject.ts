@@ -218,87 +218,52 @@ export class MainToolbarPageObject {
       },
     };
 
+    const toolAction = (id: string, groupedSection = 'MoreTools') => {
+      const button = page.getByTestId(id);
+
+      return {
+        button,
+        async click() {
+          if (await button.isVisible()) {
+            await button.click();
+            return;
+          }
+
+          // Basic and longitudinal use labeled groups; the independent test mode
+          // keeps these actions in its original MoreTools menu.
+          const isGroupedToolbar = await page.getByTestId('toolbar-group-ImageToolsGroup').count();
+          const section = isGroupedToolbar ? groupedSection : 'MoreTools';
+          await page.getByTestId(`${section}-split-button-secondary`).click();
+          await button.click();
+        },
+      };
+    };
+
     return {
       ...moreTools,
       get angle() {
-        const button = page.getByTestId('Angle');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('Angle', 'MeasurementTools');
       },
       get cobbAngle() {
-        const button = page.getByTestId('CobbAngle');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('CobbAngle', 'MeasurementTools');
       },
       get flipHorizontal() {
-        const button = page.getByTestId('flipHorizontal');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('flipHorizontal');
       },
       get invert() {
-        const button = page.getByTestId('invert');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('invert');
       },
       get probe() {
-        const button = page.getByTestId('Probe');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('Probe');
       },
       get reset() {
-        const button = page.locator('[data-cy="Reset"][role="menuitem"]');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('Reset');
       },
       get rotateRight() {
-        const button = page.getByTestId('rotate-right');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('rotate-right');
       },
       get tagBrowser() {
-        const button = page.getByTestId('TagBrowser');
-        return {
-          button,
-          async click() {
-            await moreTools.click();
-            await button.click();
-          },
-        };
+        return toolAction('TagBrowser', 'ImageTools');
       },
     };
   }

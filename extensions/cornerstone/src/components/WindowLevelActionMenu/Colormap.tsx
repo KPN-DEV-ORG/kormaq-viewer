@@ -1,7 +1,8 @@
-import React, { ReactElement, useEffect, useRef, useState } from 'react';
+import React, { ReactElement, useId, useState } from 'react';
 import { AllInOneMenu, ScrollArea, Switch, Tabs, TabsList, TabsTrigger } from '@ohif/ui-next';
 import { useViewportRendering } from '../../hooks/useViewportRendering';
 import { useTranslation } from 'react-i18next';
+import { useViewportPreview } from '../../hooks/useViewportPreview';
 
 export function Colormap({ viewportId }: { viewportId?: string } = {}): ReactElement {
   const { viewportDisplaySets } = useViewportRendering(viewportId);
@@ -12,27 +13,13 @@ export function Colormap({ viewportId }: { viewportId?: string } = {}): ReactEle
   );
 
   // Use the hook with the active display set
-  const { colorbarProperties, setColormap } = useViewportRendering(viewportId, {
+  const { colorbarProperties, setColormap, colormap } = useViewportRendering(viewportId, {
     displaySetInstanceUID: activeDisplaySetUID,
   });
 
   const { colormaps } = colorbarProperties;
 
-  const [showPreview, setShowPreview] = useState(false);
-  const [prePreviewColormap, setPrePreviewColormap] = useState(null);
-  const [currentColormap, setCurrentColormap] = useState(null);
-
-  const showPreviewRef = useRef(showPreview);
-  showPreviewRef.current = showPreview;
-  const prePreviewColormapRef = useRef(prePreviewColormap);
-  prePreviewColormapRef.current = prePreviewColormap;
-  const currentColormapRef = useRef(currentColormap);
-  currentColormapRef.current = currentColormap;
-
-  useEffect(() => {
-    setCurrentColormap(null);
-    setPrePreviewColormap(null);
-  }, [activeDisplaySetUID]);
+  const previewId = useId();
 
   const handleSetColorLUT = (colormap, immediate = true) => {
     // Check if it's a fusion viewport
@@ -46,6 +33,11 @@ export function Colormap({ viewportId }: { viewportId?: string } = {}): ReactEle
       immediate,
     });
   };
+  const { showPreview, setShowPreview, preview, commit, restorePreview } = useViewportPreview(
+    `${viewportId}:${activeDisplaySetUID}`,
+    colormap ?? undefined,
+    handleSetColorLUT
+  );
 
   return (
     <>
@@ -55,7 +47,6 @@ export function Colormap({ viewportId }: { viewportId?: string } = {}): ReactEle
             value={activeDisplaySetUID}
             onValueChange={displaySetUID => {
               setActiveDisplaySetUID(displaySetUID);
-              setPrePreviewColormap(null);
             }}
           >
             <TabsList>
@@ -72,23 +63,18 @@ export function Colormap({ viewportId }: { viewportId?: string } = {}): ReactEle
         </div>
       )}
 
-      <div
+      <label
+        htmlFor={previewId}
         className="hover:bg-accent flex h-8 w-full flex-shrink-0 cursor-pointer items-center px-2 text-base hover:rounded"
-        onClick={() => setShowPreview(!showPreview)}
       >
         <span className="flex-shrink-0">{t('Preview in viewport')}</span>
         <Switch
+          id={previewId}
           className="ml-auto flex-shrink-0"
           checked={showPreview}
-          onCheckedChange={checked => {
-            setShowPreview(checked);
-
-            if (!checked && currentColormapRef.current) {
-              handleSetColorLUT(currentColormapRef.current);
-            }
-          }}
+          onCheckedChange={setShowPreview}
         />
-      </div>
+      </label>
 
       <AllInOneMenu.DividerItem />
 
@@ -100,24 +86,9 @@ export function Colormap({ viewportId }: { viewportId?: string } = {}): ReactEle
                 key={index}
                 label={t(`Colormaps:${colormap.Name}`, { defaultValue: colormap.Name })}
                 useIconSpace={false}
-                onClick={() => {
-                  setCurrentColormap(colormap);
-                  handleSetColorLUT(colormap);
-                  setPrePreviewColormap(null);
-                }}
-                onMouseEnter={() => {
-                  if (showPreviewRef.current) {
-                    if (!prePreviewColormapRef.current) {
-                      setPrePreviewColormap(colormap);
-                    }
-                    handleSetColorLUT(colormap);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (showPreviewRef.current && prePreviewColormapRef.current) {
-                    handleSetColorLUT(prePreviewColormapRef.current);
-                  }
-                }}
+                onClick={() => commit(colormap)}
+                onMouseEnter={() => preview(colormap)}
+                onMouseLeave={restorePreview}
               />
             ))}
           </div>

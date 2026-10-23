@@ -1358,18 +1358,21 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
         }
       });
     }
-    this._renderViewport(viewport, viewportInfo, requestId);
+    if (volumesProperties.length) {
+      // Keep the actor-ready yield inside initialization so callbacks cannot run
+      // before the default preset is applied and have their changes overwritten.
+      await new Promise<void>(resolve => timeoutViewportCallback(resolve));
 
-    volumesProperties.forEach(({ properties, volumeId }) => {
-      timeoutViewportCallback(() => {
+      for (const { properties, volumeId } of volumesProperties) {
         if (!this._isViewportRequestCurrent(viewport.id, viewportInfo, requestId)) {
           return;
         }
 
         viewport.setProperties(properties, volumeId);
-        this._renderViewport(viewport, viewportInfo, requestId);
-      });
-    });
+      }
+    }
+
+    this._renderViewport(viewport, viewportInfo, requestId);
 
     if (!this._isViewportRequestCurrent(viewport.id, viewportInfo, requestId)) {
       return;

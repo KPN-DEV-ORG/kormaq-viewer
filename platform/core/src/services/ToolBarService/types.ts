@@ -54,6 +54,7 @@ export type ButtonProps = {
   icon: string;
   isActive?: boolean;
   label: string;
+  caption?: string;
   tooltip?: string;
   commands?: RunCommand;
   disabled?: boolean;

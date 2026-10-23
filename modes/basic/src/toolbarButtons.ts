@@ -631,7 +631,8 @@ const toolbarButtons: Button[] = [
     props: {
       icon: 'layout-advanced-3d-only',
       label: i18n.t('Buttons:3D Mode'),
-      tooltip: i18n.t('Buttons:Open 3D mode. Drag to rotate; scroll to zoom.'),
+      caption: '3D',
+      tooltip: i18n.t('Buttons:Render a shaded 3D volume. Drag to rotate; scroll to zoom.'),
       commands: {
         commandName: 'setHangingProtocol',
         commandOptions: {
@@ -707,7 +708,8 @@ const toolbarButtons: Button[] = [
     props: {
       icon: 'layout-advanced-3d-only',
       label: i18n.t('Hps:MIP'),
-      tooltip: i18n.t('Hps:MIP'),
+      caption: 'MIP',
+      tooltip: i18n.t('Buttons:Project the brightest structures through the volume.'),
       commands: {
         commandName: 'setHangingProtocol',
         commandOptions: {
@@ -725,7 +727,8 @@ const toolbarButtons: Button[] = [
     props: {
       icon: 'layout-advanced-mpr',
       label: i18n.t('Hps:MPR'),
-      tooltip: i18n.t('Hps:MPR'),
+      caption: 'MPR',
+      tooltip: i18n.t('Buttons:View axial, sagittal, and coronal slice planes.'),
       commands: {
         commandName: 'setHangingProtocol',
         commandOptions: {
@@ -866,7 +869,8 @@ const toolbarButtons: Button[] = [
     props: {
       icon: 'icon-mpr',
       label: i18n.t('Hps:MIP'),
-      tooltip: i18n.t('WindowLevelActionMenu:MIP / Projection'),
+      caption: 'MIP',
+      tooltip: i18n.t('Buttons:Project the brightest structures through the volume.'),
       commands: {
         commandName: 'toggleViewportProjection',
         commandOptions: {

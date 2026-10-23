@@ -30,6 +30,7 @@ interface ToolButtonProps {
   id: string;
   icon?: string;
   label?: string;
+  caption?: string;
   tooltip?: string;
   size?: 'default' | 'small';
   isActive?: boolean;
@@ -47,6 +48,7 @@ function ToolButton(props: ToolButtonProps) {
     id,
     icon = 'MissingIcon',
     label,
+    caption,
     tooltip,
     size = 'default',
     disabled = false,
@@ -65,6 +67,7 @@ function ToolButton(props: ToolButtonProps) {
   const buttonClasses = cn(
     baseClasses,
     buttonSizeClass,
+    caption && 'min-w-[3rem] w-auto flex-col gap-0 px-1',
     disabled ? disabledClasses : isActive ? activeClasses : defaultClasses,
     className
   );
@@ -101,11 +104,21 @@ function ToolButton(props: ToolButtonProps) {
             disabled={disabled}
             name={id}
           >
-            {children || (
-              <Icons.ByName
-                name={icon}
-                className={iconClassName || iconSizeClass}
-              />
+            <span
+              className={cn(
+                'inline-flex items-center justify-center',
+                caption && 'h-4 w-4 [&>svg]:h-4 [&>svg]:w-4'
+              )}
+            >
+              {children || (
+                <Icons.ByName
+                  name={icon}
+                  className={iconClassName || iconSizeClass}
+                />
+              )}
+            </span>
+            {caption && (
+              <span className="whitespace-nowrap text-[10px] font-medium leading-3">{caption}</span>
             )}
             {badge && (
               <span className="bg-background text-foreground absolute -right-0.5 -top-0.5 rounded px-0.5 text-[9px] font-semibold leading-3">

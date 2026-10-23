@@ -72,6 +72,11 @@ import {
   getWindowLevelPresetsForDisplaySet,
 } from './utils/windowLevelPresets';
 import releaseTool from './utils/releaseTool';
+import {
+  getVolumeRenderingSampleDistance,
+  MAX_VOLUME_RENDERING_QUALITY,
+  MAX_VOLUME_RENDERING_SAMPLES,
+} from './utils/volumeRenderingUtils';
 
 const { add, intersect, subtract, copy } = cstUtils.contourSegmentation;
 
@@ -197,6 +202,61 @@ function commandsModule({
     segmentationService,
     displaySetService,
   } = servicesManager.services as AppTypes.Services;
+  const initializedCTBoneActors = new WeakSet();
+
+  function getVolumeRenderingContext(viewportId?: string) {
+    const targetViewportId = viewportId ?? viewportGridService.getActiveViewportId();
+    const viewport = cornerstoneViewportService.getCornerstoneViewport(targetViewportId);
+    if (
+      !(viewport instanceof VolumeViewport3D) &&
+      viewport?.type !== CoreEnums.ViewportType.VOLUME_3D
+    ) {
+      return;
+    }
+
+    const actor = viewport.getActors?.().find(({ actor }) => {
+      const mapper = actor?.getMapper?.();
+      return (
+        mapper?.setSampleDistance &&
+        mapper.getInputData?.() &&
+        actor.getProperty?.()?.getScalarOpacity
+      );
+    })?.actor;
+    if (!actor) {
+      return;
+    }
+
+    return { viewport, actor, mapper: actor.getMapper(), property: actor.getProperty() };
+  }
+
+  function getVolumeRenderingSampleBudget() {
+    const mobileSettings = utils.getMobileVolumeRenderingSettings(extensionManager.appConfig);
+    const configuredSamples = mobileSettings?.maximumSamplesPerRay;
+    return Number.isFinite(configuredSamples)
+      ? Math.min(MAX_VOLUME_RENDERING_SAMPLES, Math.max(2, Math.floor(configuredSamples)))
+      : MAX_VOLUME_RENDERING_SAMPLES;
+  }
+
+  function renderVolumeRendering({ viewport, mapper }) {
+    const sampleBudget = getVolumeRenderingSampleBudget();
+    const minimumDistance = getVolumeRenderingSampleDistance(
+      mapper.getInputData(),
+      MAX_VOLUME_RENDERING_QUALITY,
+      sampleBudget
+    );
+    if (minimumDistance === undefined) {
+      return;
+    }
+
+    const currentDistance = mapper.getSampleDistance();
+    mapper.setMaximumSamplesPerRay(sampleBudget);
+    mapper.setSampleDistance(
+      Number.isFinite(currentDistance) && currentDistance > 0
+        ? Math.max(currentDistance, minimumDistance)
+        : minimumDistance
+    );
+    viewport.render();
+  }
 
   function _getActiveViewportEnabledElement() {
     return getActiveViewportEnabledElement(viewportGridService);
@@ -1857,7 +1917,12 @@ function commandsModule({
       viewport.setProperties({
         preset,
       });
-      viewport.render();
+      const context = getVolumeRenderingContext(viewportId);
+      if (context) {
+        renderVolumeRendering(context);
+      } else {
+        viewport.render();
+      }
     },
 
     setCTBoneOnlyRendering: ({ viewportId, retryCount = 0 } = {}) => {
@@ -1868,7 +1933,6 @@ function commandsModule({
       const maxRetries = 12;
       const retryDelayMs = 120;
       let shouldRetry = false;
-      let shouldReapply = false;
 
       const targetViewportIds = viewportId
         ? [viewportId]
@@ -1929,19 +1993,28 @@ function commandsModule({
 
         actorEntries.forEach(actorEntry => {
           const actor = actorEntry?.actor;
-          if (!actor) {
+          if (!actor || actor.isA?.('vtkVolume') === false) {
+            return;
+          }
+          if (initializedCTBoneActors.has(actor)) {
             return;
           }
 
           const property = actor.getProperty?.();
           const opacity = property?.getScalarOpacity?.(0);
           const color = property?.getRGBTransferFunction?.(0);
-          if (!property || !opacity || !color) {
+          const mapper = actor.getMapper?.();
+          const sampleDistance = getVolumeRenderingSampleDistance(
+            mapper?.getInputData?.(),
+            2,
+            getVolumeRenderingSampleBudget()
+          );
+          if (!property || !opacity || !color || sampleDistance === undefined) {
+            shouldRetry = true;
             return;
           }
 
           appliedToViewport = true;
-          shouldReapply = true;
 
           opacity.removeAllPoints();
           opacity.addPoint(-2000, 0.0);
@@ -1977,32 +2050,31 @@ function commandsModule({
           property.setGradientOpacityMaximumValue?.(0, 80);
           property.setGradientOpacityMaximumOpacity?.(0, 1.0);
 
-          const mapper = actor.getMapper?.();
           mapper?.setBlendModeToComposite?.();
           if (mapper?.setSampleDistance) {
-            mapper.setSampleDistance(mobileVolumeRenderingSettings?.sampleDistance ?? 0.55);
+            mapper.setSampleDistance(
+              Math.max(sampleDistance, mobileVolumeRenderingSettings?.sampleDistance ?? 0.55)
+            );
           }
           if (mapper?.setMaximumSamplesPerRay) {
-            mapper.setMaximumSamplesPerRay(
-              mobileVolumeRenderingSettings?.maximumSamplesPerRay ?? 4000
-            );
+            mapper.setMaximumSamplesPerRay(getVolumeRenderingSampleBudget());
           }
 
           opacity.modified?.();
           color.modified?.();
           property.modified?.();
           actor.modified?.();
+          initializedCTBoneActors.add(actor);
         });
 
         if (!appliedToViewport) {
-          shouldRetry = true;
           return;
         }
 
         viewport.render();
       });
 
-      if (shouldRetry || shouldReapply) {
+      if (shouldRetry) {
         scheduleRetry();
       }
     },
@@ -2014,24 +2086,23 @@ function commandsModule({
      */
 
     setVolumeRenderingQulaity: ({ viewportId, volumeQuality }) => {
-      const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
-      if (!viewport || volumeQuality === undefined) {
+      const context = getVolumeRenderingContext(viewportId);
+      if (!context) {
         return;
       }
 
-      const { actor } = viewport.getActors()[0];
-      const mapper = actor.getMapper();
+      const { viewport, mapper } = context;
       const image = mapper.getInputData();
-      const dims = image.getDimensions();
-      const spacing = image.getSpacing();
-      const spatialDiagonal = vec3.length(
-        vec3.fromValues(dims[0] * spacing[0], dims[1] * spacing[1], dims[2] * spacing[2])
+      const sampleDistance = getVolumeRenderingSampleDistance(
+        image,
+        volumeQuality,
+        getVolumeRenderingSampleBudget()
       );
+      if (sampleDistance === undefined) {
+        return;
+      }
 
-      let sampleDistance = spacing.reduce((a, b) => a + b) / 3.0;
-      sampleDistance /= volumeQuality > 1 ? 0.5 * volumeQuality ** 2 : 1.0;
-      const samplesPerRay = spatialDiagonal / sampleDistance + 1;
-      mapper.setMaximumSamplesPerRay(samplesPerRay);
+      mapper.setMaximumSamplesPerRay(getVolumeRenderingSampleBudget());
       mapper.setSampleDistance(sampleDistance);
       viewport.render();
     },
@@ -2049,8 +2120,11 @@ function commandsModule({
      * @param {number} shift - The shift value to shift the points by.
      */
     shiftVolumeOpacityPoints: ({ viewportId, shift }) => {
-      const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
-      const { actor } = viewport.getActors()[0];
+      const context = getVolumeRenderingContext(viewportId);
+      if (!context || !Number.isFinite(shift) || shift === 0) {
+        return;
+      }
+      const { actor } = context;
       const ofun = actor.getProperty().getScalarOpacity(0);
 
       const opacityPointValues = []; // Array to hold values
@@ -2071,7 +2145,7 @@ function commandsModule({
       opacityPointValues.forEach(opacityPointValue => {
         ofun.addPoint(...opacityPointValue);
       });
-      viewport.render();
+      renderVolumeRendering(context);
     },
 
     /**
@@ -2084,28 +2158,34 @@ function commandsModule({
      * @param {number} options.specular - The specular setting for the lighting.
      **/
 
-    setVolumeLighting: ({ viewportId, options }) => {
-      const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
-      const { actor } = viewport.getActors()[0];
-      const property = actor.getProperty();
+    setVolumeLighting: ({ viewportId, options, ambient, diffuse, specular }) => {
+      const context = getVolumeRenderingContext(viewportId);
+      if (!context) {
+        return;
+      }
+      const { property } = context;
+      options ??= { ambient, diffuse, specular };
 
       if (options.shade !== undefined) {
         property.setShade(options.shade);
       }
 
-      if (options.ambient !== undefined) {
-        property.setAmbient(options.ambient);
+      if (Number.isFinite(options.ambient)) {
+        property.setAmbient(Math.min(1, Math.max(0, options.ambient)));
       }
 
-      if (options.diffuse !== undefined) {
-        property.setDiffuse(options.diffuse);
+      if (Number.isFinite(options.diffuse)) {
+        property.setDiffuse(Math.min(1, Math.max(0, options.diffuse)));
       }
 
-      if (options.specular !== undefined) {
-        property.setSpecular(options.specular);
+      if (Number.isFinite(options.specular)) {
+        property.setSpecular(Math.min(1, Math.max(0, options.specular)));
       }
 
-      viewport.render();
+      renderVolumeRendering(context);
+    },
+    setVolumeShading: ({ viewportId, enabled }) => {
+      actions.setVolumeLighting({ viewportId, options: { shade: Boolean(enabled) } });
     },
     resetCrosshairs: ({ viewportId }) => {
       const crosshairInstances = [];
@@ -3426,6 +3506,9 @@ function commandsModule({
     },
     setVolumeLighting: {
       commandFn: actions.setVolumeLighting,
+    },
+    setVolumeShading: {
+      commandFn: actions.setVolumeShading,
     },
     resetCrosshairs: {
       commandFn: actions.resetCrosshairs,

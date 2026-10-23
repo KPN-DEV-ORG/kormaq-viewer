@@ -14,6 +14,9 @@ export function VolumeRenderingOptions({ viewportId }: { viewportId?: string } =
 
   return (
     <AllInOneMenu.ItemPanel>
+      <p className="text-muted-foreground px-2 pt-2 text-xs">
+        {t('Release sliders to apply changes. Detail is limited to keep rendering responsive.')}
+      </p>
       <VolumeRenderingQuality
         viewportId={viewportId}
         volumeRenderingQualityRange={volumeRenderingQualityRange}

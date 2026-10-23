@@ -1,8 +1,9 @@
 import React, { ReactElement, useCallback, useState, useEffect } from 'react';
 import { VolumeRenderingQualityProps } from '../../types/ViewportPresets';
-import { Numeric } from '@ohif/ui-next';
 import { useSystem } from '@ohif/core';
 import { useTranslation } from 'react-i18next';
+import { getVolumeRenderingQuality } from '../../utils/volumeRenderingUtils';
+import { VolumeRenderingSlider } from './VolumeRenderingSlider';
 
 export function VolumeRenderingQuality({
   volumeRenderingQualityRange,
@@ -11,14 +12,17 @@ export function VolumeRenderingQuality({
   const { servicesManager, commandsManager } = useSystem();
   const { cornerstoneViewportService } = servicesManager.services;
   const { min, max, step } = volumeRenderingQualityRange;
-  const [quality, setQuality] = useState(null);
+  const [quality, setQuality] = useState<number | null>(null);
   const { t } = useTranslation('WindowLevelActionMenu');
+  const actor = cornerstoneViewportService
+    .getCornerstoneViewport(viewportId)
+    ?.getActors()?.[0]?.actor;
 
   const onChange = useCallback(
     (value: number) => {
-      commandsManager.runCommand('setVolumeRenderingQulaity', {
+      commandsManager.runCommand('setVolumeRenderingQuality', {
         viewportId,
-        volumeQuality: value,
+        quality: value,
       });
       setQuality(value);
     },
@@ -26,38 +30,30 @@ export function VolumeRenderingQuality({
   );
 
   useEffect(() => {
-    const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
-    const { actor } = viewport.getActors()[0];
-    const mapper = actor.getMapper();
-    const image = mapper.getInputData();
-    const spacing = image.getSpacing();
-    const sampleDistance = mapper.getSampleDistance();
-    const averageSpacing = spacing.reduce((a, b) => a + b) / 3.0;
-    if (sampleDistance === averageSpacing) {
-      setQuality(1);
-    } else {
-      setQuality(Math.sqrt(averageSpacing / (sampleDistance * 0.5)));
-    }
-  }, [cornerstoneViewportService, viewportId]);
+    const mapper = actor?.getMapper();
+    const image = mapper?.getInputData();
+    setQuality(
+      image
+        ? Math.max(
+            min,
+            Math.min(max, getVolumeRenderingQuality(image, mapper.getSampleDistance()) ?? min)
+          )
+        : null
+    );
+  }, [actor, viewportId, min, max]);
 
   return (
     <div className="my-1 mt-2 flex flex-col space-y-2">
       {quality !== null && (
-        <div className="w-full pl-2 pr-1">
-          <Numeric.Container
-            mode="singleRange"
-            min={min}
-            max={max}
-            step={step}
-            value={quality}
-            onChange={onChange}
-          >
-            <div className="flex flex-row items-center">
-              <Numeric.Label className="w-16">{t('Quality')}</Numeric.Label>
-              <Numeric.SingleRange sliderClassName="mx-2 flex-grow" />
-            </div>
-          </Numeric.Container>
-        </div>
+        <VolumeRenderingSlider
+          key={viewportId}
+          label={t('Quality')}
+          min={min}
+          max={max}
+          step={step}
+          value={quality}
+          onValueCommit={onChange}
+        />
       )}
     </div>
   );
